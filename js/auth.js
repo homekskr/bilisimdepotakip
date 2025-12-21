@@ -114,10 +114,10 @@ if (loginForm) {
 // Logout
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
+    logoutBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
         try {
             await supabase.auth.signOut();
-            window.location.reload();
         } catch (error) {
             console.error('Logout error:', error);
             alert('Çıkış yapılırken bir hata oluştu.');
