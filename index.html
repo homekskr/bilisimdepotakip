@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KAHRAMANMARAŞ İSM BİLİŞİM DEPO TAKİP SİSTEMİ</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loader"></div>
+        <p>Yükleniyor...</p>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen hidden">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="logo">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                        <rect width="48" height="48" rx="12" fill="url(#gradient1)" />
+                        <path d="M24 12L32 18V30L24 36L16 30V18L24 12Z" stroke="white" stroke-width="2" fill="none" />
+                        <circle cx="24" cy="24" r="4" fill="white" />
+                        <defs>
+                            <linearGradient id="gradient1" x1="0" y1="0" x2="48" y2="48">
+                                <stop offset="0%" stop-color="#667eea" />
+                                <stop offset="100%" stop-color="#764ba2" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1>KAHRAMANMARAŞ İSM BİLİŞİM DEPO TAKİP SİSTEMİ</h1>
+                <p>Bilişim Malzemeleri Yönetimi</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="login-email">E-posta</label>
+                    <input type="email" id="login-email" required placeholder="ornek@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Şifre</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <span>Giriş Yap</span>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10H16M16 10L12 6M16 10L12 14" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+                <div id="login-error" class="error-message hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mobile Header -->
+    <header class="mobile-header hidden">
+        <button class="menu-toggle" id="menu-toggle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+        <span class="mobile-title">Bilişim Depo</span>
+    </header>
+
+    <!-- Main App -->
+    <div id="app" class="hidden">
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-small">
+                    <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+                        <rect width="48" height="48" rx="12" fill="url(#gradient2)" />
+                        <path d="M24 12L32 18V30L24 36L16 30V18L24 12Z" stroke="white" stroke-width="2" fill="none" />
+                        <circle cx="24" cy="24" r="4" fill="white" />
+                        <defs>
+                            <linearGradient id="gradient2" x1="0" y1="0" x2="48" y2="48">
+                                <stop offset="0%" stop-color="#667eea" />
+                                <stop offset="100%" stop-color="#764ba2" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h2>Bilişim Depo</h2>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-page="dashboard" id="dashboard-nav-item">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" />
+                        <rect x="11" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" />
+                        <rect x="3" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" />
+                        <rect x="11" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" />
+                    </svg>
+                    <span>Ana Ekran</span>
+                </a>
+                <a href="#materials" class="nav-item" data-page="materials" id="materials-nav-item">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5" />
+                        <path d="M3 8H17" stroke="currentColor" stroke-width="1.5" />
+                        <path d="M8 3V8" stroke="currentColor" stroke-width="1.5" />
+                    </svg>
+                    <span>Malzemeler</span>
+                </a>
+                <a href="#requests" class="nav-item" data-page="requests" id="requests-nav-item">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5" />
+                        <path d="M10 7V11L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                    <span>Talepler</span>
+                </a>
+                <a href="#assignments" class="nav-item" data-page="assignments" id="assignments-nav-item">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 3V17M10 17L6 13M10 17L14 13" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round" />
+                    </svg>
+                    <span>Zimmetler</span>
+                </a>
+                <a href="#reports" class="nav-item" data-page="reports" id="reports-nav-item">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 17V9M10 17V3M15 17V13" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round" />
+                    </svg>
+                    <span>Raporlar</span>
+                </a>
+                <a href="#users" class="nav-item" data-page="users" id="users-nav-item" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.5" />
+                        <path d="M4 17C4 14 6.5 12 10 12C13.5 12 16 14 16 17" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round" />
+                    </svg>
+                    <span>Kullanıcılar</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">
+                        <span id="user-initials">U</span>
+                    </div>
+                    <div class="user-details">
+                        <p class="user-name" id="user-name">Kullanıcı</p>
+                        <p class="user-role" id="user-role">Rol</p>
+                    </div>
+                </div>
+                <button class="btn-logout" id="logout-btn" title="Çıkış Yap">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path
+                            d="M13 3H16C16.5523 3 17 3.44772 17 4V16C17 16.5523 16.5523 17 16 17H13M8 14L3 10M3 10L8 6M3 10H13"
+                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div id="page-content">
+                <!-- Pages will be loaded here dynamically -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Barcode Scanner Modal -->
+    <div id="barcode-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Barkod Okut</h3>
+                <button class="modal-close" id="close-barcode-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="barcode-scanner"></div>
+                <p class="scanner-hint">Barkodu kamera önüne tutun</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="/js/supabase-client.js"></script>
+    <script type="module" src="/js/auth.js"></script>
+    <script type="module" src="/js/app.js"></script>
+    <script type="module" src="/js/materials.js"></script>
+    <script type="module" src="/js/assignments.js"></script>
+    <script type="module" src="/js/requests.js"></script>
+    <script type="module" src="/js/users.js"></script>
+    <script type="module" src="/js/reports.js"></script>
+    <script type="module" src="/js/barcode.js"></script>
+</body>
+
+</html>
