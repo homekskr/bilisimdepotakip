@@ -34,6 +34,10 @@ function initRouting() {
     isRoutesInitialized = true;
 
     console.log('Initializing routing...');
+
+    // Check PWA status
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
     // Handle nav clicks
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
@@ -45,20 +49,20 @@ function initRouting() {
 
     // Handle browser back and Exit Trap
     window.addEventListener('popstate', (e) => {
-        // PWA Exit Trap for Dashboard
-        if (currentPage === 'dashboard') {
-            // Check if we are running as PWA (standalone)
-            const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-
-            if (isPWA && !e.state) {
-                // We popped the state, so we are at the 'root' attempt to exit
-                const intentToExit = confirm("Uygulamadan çıkmak istiyor musunuz?");
-                if (!intentToExit) {
-                    // User stayed: Restore trap
-                    window.history.pushState({ page: 'dashboard', trap: true }, '', '#dashboard');
-                    return; // Don't reload page
-                }
-                // If Yes: We do nothing, let the state be popped. Next back exits.
+        // PWA Trap Logic
+        if (currentPage === 'dashboard' && isPWA) {
+            // If we are here, the user pressed back and "popped" the trap state
+            // We are now technically at the "root" state provided we pushed one earlier
+            const intentToExit = confirm("Uygulamadan çıkmak istiyor musunuz?");
+            if (!intentToExit) {
+                // User wants to stay: Re-push the trap state
+                window.history.pushState({ page: 'dashboard', trap: true }, '', '#dashboard');
+                return;
+            } else {
+                // User wants to exit. We are currently at 'Root' (because we popped).
+                // Calling back() again from Root should trigger app exit.
+                window.history.back();
+                return;
             }
         }
 
@@ -71,28 +75,24 @@ function initRouting() {
     let hash = window.location.hash.slice(1);
     if (!hash) hash = 'dashboard';
 
-    // Initial PWA Trap: If on dashboard, push a state so back button has something to pop
-    if (hash === 'dashboard') {
-        const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        if (isPWA) {
-            // Replace current (entry) with valid state, then push trap
+    // Initial Setup
+    loadPage(hash).then(() => {
+        // If PWA and on dashboard, set the trap immediately
+        if (hash === 'dashboard' && isPWA) {
+            // Ensure we have a history stack to pop from
+            // 1. Replace current root with clean state
             window.history.replaceState({ page: 'dashboard', root: true }, '', '#dashboard');
+            // 2. Push the "Trap" state. User is now at index 1. Back button goes to index 0 (Root).
             window.history.pushState({ page: 'dashboard', trap: true }, '', '#dashboard');
-            loadPage('dashboard');
-            return;
         }
-    }
+    });
 
-    navigateTo(hash, false);
+    // Only update visual nav if not done by loadPage
+    updateNav(hash);
 }
 
-// Navigate to page
-function navigateTo(page, pushState = true) {
-    if (page === currentPage) return;
-
-    currentPage = page;
-
-    // Update active nav item
+// Helper to update visual nav state
+function updateNav(page) {
     navItems.forEach(item => {
         if (item.dataset.page === page) {
             item.classList.add('active');
