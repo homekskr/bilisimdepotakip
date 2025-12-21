@@ -51,18 +51,23 @@ function initRouting() {
     window.addEventListener('popstate', (e) => {
         // PWA Trap Logic
         if (currentPage === 'dashboard' && isPWA) {
-            // If we are here, the user pressed back and "popped" the trap state
-            // We are now technically at the "root" state provided we pushed one earlier
-            const intentToExit = confirm("Uygulamadan çıkmak istiyor musunuz?");
-            if (!intentToExit) {
-                // User wants to stay: Re-push the trap state
-                window.history.pushState({ page: 'dashboard', trap: true }, '', '#dashboard');
-                return;
-            } else {
-                // User wants to exit. We are currently at 'Root' (because we popped).
-                // Calling back() again from Root should trigger app exit.
-                window.history.back();
-                return;
+            // Check if we popped to the root state (trap triggered)
+            const isRoot = !e.state || e.state.root === true;
+
+            if (isRoot) {
+                // We are at the 'root' attempt to exit
+                const intentToExit = confirm("Uygulamadan çıkmak istiyor musunuz?");
+                if (!intentToExit) {
+                    // User stayed: Restore trap
+                    window.history.pushState({ page: 'dashboard', trap: true }, '', '#dashboard');
+                    return;
+                } else {
+                    // User wants to exit. 
+                    // We are at Root. One more back() closes the app or goes to previous browser page.
+                    // Note: In standalone PWA, this closes the app.
+                    window.history.back();
+                    return;
+                }
             }
         }
 
