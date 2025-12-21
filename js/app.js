@@ -76,16 +76,16 @@ function initRouting() {
     if (!hash) hash = 'dashboard';
 
     // Initial Setup
-    loadPage(hash).then(() => {
-        // If PWA and on dashboard, set the trap immediately
-        if (hash === 'dashboard' && isPWA) {
-            // Ensure we have a history stack to pop from
-            // 1. Replace current root with clean state
-            window.history.replaceState({ page: 'dashboard', root: true }, '', '#dashboard');
-            // 2. Push the "Trap" state. User is now at index 1. Back button goes to index 0 (Root).
-            window.history.pushState({ page: 'dashboard', trap: true }, '', '#dashboard');
-        }
-    });
+    // PWA Trap: Set IMMEDIATELLY before loading data
+    if (hash === 'dashboard' && isPWA) {
+        // Ensure we have a history stack to pop from
+        // 1. Replace current root with clean state
+        window.history.replaceState({ page: 'dashboard', root: true }, '', '#dashboard');
+        // 2. Push the "Trap" state. User is now at index 1. Back button goes to index 0 (Root).
+        window.history.pushState({ page: 'dashboard', trap: true }, '', '#dashboard');
+    }
+
+    loadPage(hash);
 
     // Only update visual nav if not done by loadPage
     updateNav(hash);
