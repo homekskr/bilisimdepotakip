@@ -100,16 +100,26 @@ function updateNav(page) {
             item.classList.remove('active');
         }
     });
+}
 
-    // Update URL
+// Navigate to page
+function navigateTo(page, pushState = true) {
+    if (page === currentPage) return;
+    currentPage = page;
+    updateNav(page);
+
+    // PWA Special: If going TO dashboard, ensure trap is set
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
     if (pushState) {
         window.history.pushState({ page }, '', `#${page}`);
+
+        if (page === 'dashboard' && isPWA) {
+            // We generally trust the initial trap, but sticking to simple nav for now.
+        }
     }
 
-    // Load page content
     loadPage(page);
-
-    // Close sidebar on navigation (for mobile)
     closeSidebar();
 }
 
