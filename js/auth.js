@@ -116,11 +116,13 @@ const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', async (e) => {
         e.preventDefault();
-        try {
-            await supabase.auth.signOut();
-        } catch (error) {
-            console.error('Logout error:', error);
-            alert('Çıkış yapılırken bir hata oluştu.');
+        if (confirm('SİSTEMDEN ÇIKIŞ YAPMAK İSTİYOR MUSUNUZ?')) {
+            try {
+                await supabase.auth.signOut();
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Çıkış yapılırken bir hata oluştu.');
+            }
         }
     });
 }

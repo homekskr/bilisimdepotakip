@@ -43,8 +43,25 @@ function initRouting() {
         });
     });
 
-    // Handle browser back
+    // Handle browser back and Exit Trap
     window.addEventListener('popstate', (e) => {
+        // PWA Exit Trap for Dashboard
+        if (currentPage === 'dashboard') {
+            // Check if we are running as PWA (standalone)
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+            if (isPWA && !e.state) {
+                // We popped the state, so we are at the 'root' attempt to exit
+                const intentToExit = confirm("Uygulamadan çıkmak istiyor musunuz?");
+                if (!intentToExit) {
+                    // User stayed: Restore trap
+                    window.history.pushState({ page: 'dashboard', trap: true }, '', '#dashboard');
+                    return; // Don't reload page
+                }
+                // If Yes: We do nothing, let the state be popped. Next back exits.
+            }
+        }
+
         if (e.state && e.state.page) {
             loadPage(e.state.page, false);
         }
@@ -53,6 +70,19 @@ function initRouting() {
     // Load initial page
     let hash = window.location.hash.slice(1);
     if (!hash) hash = 'dashboard';
+
+    // Initial PWA Trap: If on dashboard, push a state so back button has something to pop
+    if (hash === 'dashboard') {
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (isPWA) {
+            // Replace current (entry) with valid state, then push trap
+            window.history.replaceState({ page: 'dashboard', root: true }, '', '#dashboard');
+            window.history.pushState({ page: 'dashboard', trap: true }, '', '#dashboard');
+            loadPage('dashboard');
+            return;
+        }
+    }
+
     navigateTo(hash, false);
 }
 
