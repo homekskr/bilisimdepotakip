@@ -333,7 +333,7 @@ async function saveAssignment() {
                 target_title: title,
                 quantity: quantity,
                 assigned_by: window.currentUser.id,
-                // request_id: document.getElementById('assignment-form').dataset.requestId || null, // DISABLED: Schema mismatch (DB expects UUID, Request ID is Int)
+                request_id: document.getElementById('assignment-form').dataset.requestId ? parseInt(document.getElementById('assignment-form').dataset.requestId) : null,
                 status: 'aktif'
             }]);
 
