@@ -186,6 +186,14 @@ async function render() {
     document.getElementById('cancel-assignment-btn')?.addEventListener('click', closeAssignmentModal);
     document.getElementById('save-assignment-btn')?.addEventListener('click', saveAssignment);
 
+    // Check for prefill data (Auto-open modal)
+    if (canManage && window.assignmentPrefillData) {
+        setTimeout(() => {
+            openAssignmentModal(window.assignmentPrefillData);
+            window.assignmentPrefillData = null; // Clear
+        }, 300); // Slight delay to ensure DOM is ready
+    }
+
     attachTableEventListeners();
 }
 
@@ -199,7 +207,7 @@ function renderAssignmentsTable(assignments, canManage) {
 
     return assignments.map(a => `
         <tr data-id="${a.id}">
-            <td data-label="Malzeme">${a.materials?.name || 'Bilinmiyor'}</td>
+            <td data-label="Malzeme">${a.materials?.name || (a.materials ? 'İsimsiz' : ('ID: ' + a.material_id))}</td>
             <td data-label="Zimmetli">${a.assigned_to}</td>
             <td data-label="Adet"><span class="badge badge-info">${a.quantity}</span></td>
             <td data-label="Zimmet Tarihi">${new Date(a.assigned_date).toLocaleDateString('tr-TR')}</td>
@@ -240,7 +248,7 @@ function filterAssignments(query) {
 }
 
 // Open assignment modal
-async function openAssignmentModal() {
+async function openAssignmentModal(prefillData = null) {
     const modal = document.getElementById('assignment-modal');
     const materialSelect = document.getElementById('assignment-material');
 
@@ -255,6 +263,27 @@ async function openAssignmentModal() {
         materials.map(m => `<option value="${m.id}" data-max="${m.quantity}">${m.name} [${m.condition}] - ${m.brand_model} (Stok: ${m.quantity})</option>`).join('');
 
     document.getElementById('assignment-form').reset();
+
+    // Apply prefill data if exists
+    if (prefillData) {
+        if (prefillData.materialId) {
+            materialSelect.value = prefillData.materialId;
+        }
+        if (prefillData.quantity) {
+            document.getElementById('assignment-quantity').value = prefillData.quantity;
+        }
+        if (prefillData.institution) document.getElementById('assignment-institution').value = prefillData.institution;
+        if (prefillData.building) document.getElementById('assignment-building').value = prefillData.building;
+        if (prefillData.unit) document.getElementById('assignment-unit').value = prefillData.unit;
+        if (prefillData.personnel) document.getElementById('assignment-personnel').value = prefillData.personnel;
+        if (prefillData.title) document.getElementById('assignment-title').value = prefillData.title;
+
+        // Add hidden request id if needed for tracking (form usually doesn't have it, but we can store it in dataset)
+        if (prefillData.requestId) {
+            document.getElementById('assignment-form').dataset.requestId = prefillData.requestId;
+        }
+    }
+
     modal.classList.remove('hidden');
 }
 
@@ -295,7 +324,7 @@ async function saveAssignment() {
         const { error: assignError } = await supabase
             .from('assignments')
             .insert([{
-                material_id: materialId,
+                material_id: parseInt(materialId),
                 assigned_to: personnel, // Backend column stays same or updated
                 institution: institution,
                 building: building,
@@ -304,6 +333,7 @@ async function saveAssignment() {
                 target_title: title,
                 quantity: quantity,
                 assigned_by: window.currentUser.id,
+                request_id: document.getElementById('assignment-form').dataset.requestId || null, // Link to request
                 status: 'aktif'
             }]);
 
@@ -317,8 +347,20 @@ async function saveAssignment() {
 
         if (updateError) throw updateError;
 
+        // If this assignment is linked to a request, mark the request as completed/assigned
+        const requestId = document.getElementById('assignment-form').dataset.requestId;
+        if (requestId) {
+            const { error: reqError } = await supabase
+                .from('requests')
+                .update({ status: 'tamamlandi' })
+                .eq('id', requestId);
+
+            if (reqError) console.error('Error updating request status:', reqError);
+        }
+
         window.assignmentsData = null; // Invalidate cache
         window.materialsData = null; // Also invalidate materials cache as quantity changed
+        window.requestsData = null; // Invalidate requests cache as status changed
         closeAssignmentModal();
         render(); // Reload
 

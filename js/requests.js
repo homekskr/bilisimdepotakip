@@ -253,7 +253,7 @@ function renderRequestsTable(requests, userRole) {
         const isAdmin = userRole === 'admin';
         const canApproveAsManager = (isAdmin || userRole === 'yonetici') && r.status === 'beklemede' && !r.manager_approval;
         const canApproveAsPresident = (isAdmin || userRole === 'baskan') && r.manager_approval === 'onaylandi' && !r.president_approval;
-        const canCreateAssignment = (isAdmin || userRole === 'depo') && r.status === 'onaylandi';
+        const canCreateAssignment = (isAdmin || userRole === 'depo') && r.status === 'onaylandi'; // 'tamamlandi' means already assigned
 
         return `
             <tr data-id="${r.id}">
@@ -313,6 +313,7 @@ function getStatusBadge(status) {
         'yonetici_onayi': '<span class="badge badge-info">Yönetici Onayında</span>',
         'baskan_onayi': '<span class="badge badge-info">Başkan Onayında</span>',
         'onaylandi': '<span class="badge badge-success">Onaylandı</span>',
+        'tamamlandi': '<span class="badge badge-success" style="background: var(--success-color); filter: brightness(0.9);">Zimmetlendi</span>',
         'reddedildi': '<span class="badge badge-danger">Reddedildi</span>'
     };
     return badges[status] || status;
@@ -551,51 +552,30 @@ async function processPresidentApproval(id, approved, materialId = null) {
 }
 
 // Create assignment from approved request
+// Create assignment from approved request
 async function createAssignmentFromRequest(requestId, materialId, quantity) {
-    const assignedTo = prompt('Zimmetli kişi/birim adını girin:');
-    if (!assignedTo) return;
+    // Find the full request data
+    const request = window.requestsData?.find(r => r.id === requestId);
 
-    try {
-        // Check stock
-        const { data: material } = await supabase
-            .from('materials')
-            .select('quantity')
-            .eq('id', materialId)
-            .single();
-
-        if (material.quantity < quantity) {
-            alert('Yetersiz stok! Mevcut: ' + material.quantity);
-            return;
-        }
-
-        // Create assignment
-        const { error: assignError } = await supabase
-            .from('assignments')
-            .insert([{
-                material_id: materialId,
-                assigned_to: assignedTo,
-                quantity: quantity,
-                assigned_by: window.currentUser.id,
-                request_id: requestId,
-                status: 'aktif'
-            }]);
-
-        if (assignError) throw assignError;
-
-        // Update material quantity
-        const { error: updateError } = await supabase
-            .from('materials')
-            .update({ quantity: material.quantity - quantity })
-            .eq('id', materialId);
-
-        if (updateError) throw updateError;
-
-        alert('Zimmet çıkışı başarıyla yapıldı!');
-        render(); // Reload
-
-    } catch (error) {
-        alert('Hata: ' + error.message);
+    if (!request) {
+        alert('Talep bilgisi bulunamadı!');
+        return;
     }
+
+    // Prepare prefill data
+    window.assignmentPrefillData = {
+        materialId: materialId,
+        quantity: quantity,
+        institution: request.institution,
+        building: request.building,
+        unit: request.unit,
+        personnel: request.target_personnel,
+        title: request.target_title,
+        requestId: requestId // To link back if needed
+    };
+
+    // Navigate to assignments page
+    window.navigateTo('assignments');
 }
 
 // Cancel request
