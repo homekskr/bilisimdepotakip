@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bilisim-depo-v2';
+const CACHE_NAME = 'bilisim-depo-v4';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -41,30 +41,38 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Fetch event - serve from cache or network
+// Fetch event - Network First strategy (always try network first, fallback to cache)
 self.addEventListener('fetch', (event) => {
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            // Return cached response if found
-            if (response) {
-                return response;
-            }
-
-            // Otherwise fetch from network
-            return fetch(event.request).then((response) => {
+        fetch(event.request)
+            .then((response) => {
                 // Check if we received a valid response
                 if (!response || response.status !== 200 || response.type !== 'basic') {
                     return response;
                 }
 
-                // Clone the response
+                // Clone the response to cache it
                 const responseToCache = response.clone();
 
-                // Add to cache dynamic requests (optional, careful with API calls)
-                // For this app, we mostly want to cache static shell. API calls go to Supabase which handles its own caching/live data.
+                // Update cache with fresh content
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, responseToCache);
+                });
 
                 return response;
-            });
-        })
+            })
+            .catch(() => {
+                // Network failed, try cache
+                return caches.match(event.request).then((response) => {
+                    if (response) {
+                        return response;
+                    }
+                    // If not in cache either, return a basic error response
+                    return new Response('Offline - content not available', {
+                        status: 503,
+                        statusText: 'Service Unavailable'
+                    });
+                });
+            })
     );
 });

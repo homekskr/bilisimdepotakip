@@ -1,5 +1,6 @@
 // Materials Module
 import { supabase, checkUserRole } from './supabase-client.js';
+import { showToast, showConfirm } from './ui.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -35,7 +36,6 @@ async function render() {
         <div class="page-header">
             <div>
                 <h1>Malzemeler</h1>
-                <p>Depodaki tüm malzemeleri görüntüleyin ve yönetin</p>
             </div>
             ${canManage ? '<button class="btn btn-primary" id="add-material-btn">+ Yeni Malzeme</button>' : ''}
         </div>
@@ -74,6 +74,7 @@ async function render() {
                 </select>
                 <select id="mat-sort" class="btn btn-sm btn-secondary" style="background: var(--bg-secondary); text-align: left;">
                     <option value="created_desc">En Yeni Eklenen</option>
+                    <option value="updated_desc">Son Güncellenen</option>
                     <option value="quantity_desc">En Çok Stok</option>
                     <option value="quantity_asc">En Az Stok</option>
                     <option value="name_asc">İsme Göre (A-Z)</option>
@@ -150,8 +151,16 @@ async function render() {
                             <input type="text" id="material-brand" required>
                         </div>
                         <div class="form-group">
-                            <label for="material-quantity">Adet *</label>
+                            <label for="material-quantity" id="label-quantity">Adet *</label>
                             <input type="number" id="material-quantity" min="0" required>
+                        </div>
+                        <div class="form-group hidden" id="stock-change-group">
+                            <label for="material-stock-change">Stok İlave Et / Çıkar (+/-)</label>
+                            <input type="number" id="material-stock-change" placeholder="Örn: 5 veya -3">
+                        </div>
+                        <div class="form-group hidden" id="stock-notes-group">
+                            <label for="material-notes">Değişim Nedeni / Notlar</label>
+                            <input type="text" id="material-notes" placeholder="Stok değişim nedeni...">
                         </div>
                         <div class="form-group">
                             <label for="material-barcode">Barkod</label>
@@ -160,6 +169,16 @@ async function render() {
                         <div class="form-group">
                             <label for="material-specs">Malzeme Özellikleri</label>
                             <textarea id="material-specs" rows="4" placeholder="Malzeme detaylarını buraya yazın..."></textarea>
+                        </div>
+                        <div id="material-dates-info" class="hidden" style="margin-top: var(--spacing-md); padding: var(--spacing-sm); background: rgba(255,255,255,0.05); border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-secondary);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span>Eklenme:</span>
+                                <span id="info-created-at">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Son Güncelleme:</span>
+                                <span id="info-updated-at">-</span>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -206,7 +225,7 @@ async function render() {
                     document.getElementById('search-materials').value = barcode;
                     updateMaterialsTable(canManage);
                 } else {
-                    alert('Barkod bulunamadı: ' + barcode);
+                    showToast('Barkod bulunamadı: ' + barcode, 'warning');
                 }
             });
         }
@@ -237,8 +256,20 @@ function renderMaterialsTable(materials, canManage) {
             ${canManage ? `
                 <td data-label="İşlemler">
                     <div class="table-actions">
-                        <button class="btn btn-sm btn-secondary edit-material-btn" data-id="${m.id}">Düzenle</button>
-                        <button class="btn btn-sm btn-danger delete-material-btn" data-id="${m.id}">Sil</button>
+                        <button class="btn btn-sm btn-success edit-material-btn" data-id="${m.id}" title="Düzenle">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                        <button class="btn btn-sm btn-danger delete-material-btn" data-id="${m.id}" title="Sil">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                        </button>
                     </div>
                 </td>
             ` : ''}
@@ -276,6 +307,7 @@ function updateMaterialsTable(canManage) {
             case 'quantity_asc': return a.quantity - b.quantity;
             case 'name_asc': return a.name.localeCompare(b.name, 'tr');
             case 'type_asc': return a.type.localeCompare(b.type, 'tr');
+            case 'updated_desc': return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
             case 'created_desc': default: return new Date(b.created_at) - new Date(a.created_at);
         }
     });
@@ -297,10 +329,20 @@ function openMaterialModal(materialId = null) {
 
     if (materialId) {
         title.textContent = 'Malzeme Düzenle';
+        document.getElementById('material-dates-info').classList.remove('hidden');
+        document.getElementById('stock-change-group').classList.remove('hidden');
+        document.getElementById('stock-notes-group').classList.remove('hidden');
+        document.getElementById('label-quantity').textContent = 'Mevcut Stok';
+        document.getElementById('material-quantity').readOnly = true;
         loadMaterialData(materialId);
     } else {
         title.textContent = 'Yeni Malzeme';
         document.getElementById('material-id').value = '';
+        document.getElementById('material-dates-info').classList.add('hidden');
+        document.getElementById('stock-change-group').classList.add('hidden');
+        document.getElementById('stock-notes-group').classList.add('hidden');
+        document.getElementById('label-quantity').textContent = 'Adet *';
+        document.getElementById('material-quantity').readOnly = false;
     }
 
     modal.classList.remove('hidden');
@@ -321,7 +363,7 @@ async function loadMaterialData(id) {
         .single();
 
     if (error || !data) {
-        alert('Malzeme yüklenemedi');
+        showToast('Malzeme yüklenemedi', 'error');
         return;
     }
 
@@ -333,6 +375,10 @@ async function loadMaterialData(id) {
     document.getElementById('material-quantity').value = data.quantity;
     document.getElementById('material-barcode').value = data.barcode || '';
     document.getElementById('material-specs').value = data.specifications || '';
+
+    // Set dates info
+    document.getElementById('info-created-at').textContent = new Date(data.created_at).toLocaleString('tr-TR');
+    document.getElementById('info-updated-at').textContent = data.updated_at ? new Date(data.updated_at).toLocaleString('tr-TR') : '-';
 }
 
 // Save material
@@ -361,25 +407,70 @@ async function saveMaterial() {
     try {
         const isAdmin = await checkUserRole('admin');
         if (!isAdmin) {
-            alert('Bu işlem için yönetici yetkisi gereklidir.');
+            showToast('Bu işlem için yönetici yetkisi gereklidir.', 'error');
             return;
         }
 
         if (id) {
-            // Update
+            // Update mode
+            const stockChange = parseInt(document.getElementById('material-stock-change').value) || 0;
+            const notes = document.getElementById('material-notes').value.trim();
+
+            if (stockChange !== 0) {
+                // Use RPC for stock update with logging
+                const { data: rpcResult, error: rpcError } = await supabase.rpc('update_material_stock_secure', {
+                    p_material_id: id,
+                    p_user_id: window.currentUser.id,
+                    p_change_amount: stockChange,
+                    p_type: stockChange > 0 ? 'ekleme' : 'silme',
+                    p_notes: notes || 'Manuel stok güncelleme'
+                });
+
+                if (rpcError) throw rpcError;
+                if (rpcResult && !rpcResult.success) {
+                    showToast(rpcResult.message, 'error');
+                    return;
+                }
+            }
+
+            // Update other fields
             const { error } = await supabase
                 .from('materials')
-                .update(materialData)
+                .update({
+                    name,
+                    type,
+                    condition,
+                    brand_model,
+                    barcode: barcode || null,
+                    specifications,
+                    updated_at: new Date().toISOString()
+                })
                 .eq('id', id);
 
             if (error) throw error;
+            showToast('Malzeme başarıyla güncellendi', 'success');
         } else {
-            // Insert
-            const { error } = await supabase
+            // Insert mode
+            const { data: newMaterial, error } = await supabase
                 .from('materials')
-                .insert([materialData]);
+                .insert([materialData])
+                .select()
+                .single();
 
             if (error) throw error;
+
+            // Initial log for creation
+            await supabase.from('stock_movements').insert([{
+                material_id: newMaterial.id,
+                user_id: window.currentUser.id,
+                type: 'olusturma',
+                change_amount: quantity,
+                previous_quantity: 0,
+                new_quantity: quantity,
+                notes: 'İlk kayıt oluşturuldu'
+            }]);
+
+            showToast('Yeni malzeme başarıyla kaydedildi', 'success');
         }
 
         window.materialsData = null; // Invalidate cache
@@ -387,20 +478,27 @@ async function saveMaterial() {
         render(); // Reload page
 
     } catch (error) {
-        alert('Hata: ' + error.message);
+        showToast('Hata: ' + error.message, 'error');
     }
 }
 
 // Delete material
 async function deleteMaterial(id) {
-    if (!confirm('Bu malzemeyi silmek istediğinizden emin misiniz?')) {
-        return;
-    }
+    const material = (window.materialsData || []).find(m => m.id === id);
+    const materialName = material ? material.name : 'bu malzemeyi';
+
+    const confirmed = await showConfirm(
+        'Malzemeyi Sil?',
+        `${materialName} isimli malzemi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`,
+        'Evet, Sil'
+    );
+
+    if (!confirmed) return;
 
     try {
         const isAdmin = await checkUserRole('admin');
         if (!isAdmin) {
-            alert('Bu işlem için yönetici yetkisi gereklidir.');
+            showToast('Bu işlem için yönetici yetkisi gereklidir.', 'error');
             return;
         }
 
@@ -411,10 +509,11 @@ async function deleteMaterial(id) {
 
         if (error) throw error;
 
+        window.materialsData = null; // Invalidate cache so render() fetches fresh data
         render(); // Reload page
 
     } catch (error) {
-        alert('Hata: ' + error.message);
+        showToast('Hata: ' + error.message, 'error');
     }
 }
 

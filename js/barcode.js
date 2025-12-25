@@ -1,5 +1,6 @@
 // Barcode Scanner Module
 import Quagga from 'https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/+esm';
+import { showToast } from './ui.js';
 
 let scannerCallback = null;
 
@@ -39,7 +40,7 @@ function openScanner(callback) {
     }, function (err) {
         if (err) {
             console.error('Barcode scanner init error:', err);
-            alert('Kamera erişimi başarısız. Lütfen kamera izinlerini kontrol edin.');
+            showToast('Kamera erişimi başarısız. Lütfen kamera izinlerini kontrol edin.', 'error');
             closeScanner();
             return;
         }

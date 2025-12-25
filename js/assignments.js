@@ -1,14 +1,15 @@
 // Assignments Module (Zimmetler)
 import { supabase, checkUserRole } from './supabase-client.js';
+import { showToast, showConfirm } from './ui.js';
 
 const pageContent = document.getElementById('page-content');
 
 // Render assignments page
-async function render() {
+async function render(forceRefresh = false) {
     const canManage = await checkUserRole(['admin', 'depo']);
 
     // Fetch assignments with related data (using cache)
-    if (!window.assignmentsData) {
+    if (!window.assignmentsData || forceRefresh) {
         const { data: assignments, error } = await supabase
             .from('assignments')
             .select(`
@@ -32,7 +33,6 @@ async function render() {
         <div class="page-header">
             <div>
                 <h1>Zimmetler</h1>
-                <p>Malzeme zimmet kayıtları</p>
             </div>
             ${canManage ? '<button class="btn btn-primary" id="add-assignment-btn">+ Yeni Zimmet</button>' : ''}
         </div>
@@ -294,6 +294,7 @@ function closeAssignmentModal() {
 
 // Save assignment
 async function saveAssignment() {
+    const saveBtn = document.getElementById('save-assignment-btn');
     const materialId = document.getElementById('assignment-material').value;
     const institution = document.getElementById('assignment-institution').value;
     const building = document.getElementById('assignment-building').value;
@@ -301,79 +302,70 @@ async function saveAssignment() {
     const personnel = document.getElementById('assignment-personnel').value;
     const title = document.getElementById('assignment-title').value;
     const quantity = parseInt(document.getElementById('assignment-quantity').value);
+    const requestId = document.getElementById('assignment-form').dataset.requestId || null;
 
     if (!materialId || !institution || !building || !unit || !personnel || !title || !quantity) {
-        alert('Lütfen tüm alanları doldurun');
+        showToast('Lütfen tüm alanları doldurunuz', 'warning');
         return;
     }
 
-    // Check stock
-    const { data: material } = await supabase
-        .from('materials')
-        .select('quantity')
-        .eq('id', materialId)
-        .single();
-
-    if (material.quantity < quantity) {
-        alert('Yetersiz stok! Mevcut: ' + material.quantity);
-        return;
-    }
+    // Disable button to prevent double submission
+    saveBtn.disabled = true;
+    const originalBtnText = saveBtn.textContent;
+    saveBtn.textContent = 'İşleniyor...';
 
     try {
-        // Create assignment
-        const { error: assignError } = await supabase
-            .from('assignments')
-            .insert([{
-                material_id: parseInt(materialId),
-                assigned_to: personnel, // Backend column stays same or updated
-                institution: institution,
-                building: building,
-                unit: unit,
-                target_personnel: personnel,
-                target_title: title,
-                quantity: quantity,
-                assigned_by: window.currentUser.id,
-                // request_id: document.getElementById('assignment-form').dataset.requestId ? parseInt(document.getElementById('assignment-form').dataset.requestId) : null,
-                status: 'aktif'
-            }]);
+        // Use RPC for atomic transaction (Stok kontrolü + Zimmet + Stok düşme + Talep güncelleme)
+        const { data: result, error } = await supabase.rpc('create_assignment_secure', {
+            p_material_id: materialId,
+            p_assigned_to: personnel,
+            p_institution: institution,
+            p_building: building,
+            p_unit: unit,
+            p_target_personnel: personnel,
+            p_target_title: title,
+            p_quantity: quantity,
+            p_assigned_by: window.currentUser.id,
+            p_request_id: requestId
+        });
 
-        if (assignError) throw assignError;
+        if (error) throw error;
 
-        // Update material quantity
-        const { error: updateError } = await supabase
-            .from('materials')
-            .update({ quantity: material.quantity - quantity })
-            .eq('id', materialId);
-
-        if (updateError) throw updateError;
-
-        // If this assignment is linked to a request, mark the request as completed/assigned
-        const requestId = document.getElementById('assignment-form').dataset.requestId;
-        if (requestId) {
-            const { error: reqError } = await supabase
-                .from('requests')
-                .update({ status: 'tamamlandi' })
-                .eq('id', requestId);
-
-            if (reqError) console.error('Error updating request status:', reqError);
+        if (result && !result.success) {
+            showToast(result.message, 'error');
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalBtnText;
+            return;
         }
 
         window.assignmentsData = null; // Invalidate cache
-        window.materialsData = null; // Also invalidate materials cache as quantity changed
-        window.requestsData = null; // Invalidate requests cache as status changed
+        window.requestsData = null; // Invalidate requests cache
+        window.materialsData = null; // Invalidate materials cache
+
+        showToast('Zimmet çıkışı başarıyla tamamlandı', 'success');
         closeAssignmentModal();
-        render(); // Reload
+        render(true); // Reload with force refresh
 
     } catch (error) {
-        alert('Hata: ' + error.message);
+        console.error('Assignment error:', error);
+        showToast('Hata: ' + error.message, 'error');
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalBtnText;
     }
 }
 
 // Return assignment
 async function returnAssignment(id) {
-    if (!confirm('Bu zimmeti iade almak istediğinizden emin misiniz?')) {
-        return;
-    }
+    const assignment = (window.assignmentsData || []).find(a => a.id === id);
+    const materialName = assignment?.materials?.name || 'Malzemeyi';
+
+    const confirmed = await showConfirm(
+        'İade Al?',
+        `${materialName} isimli zimmeti iade almak istediğinizden emin misiniz?`,
+        'Evet, İade Al'
+    );
+
+    if (!confirmed) return;
 
     try {
         // Get assignment details
@@ -408,12 +400,24 @@ async function returnAssignment(id) {
 
         if (updateError) throw updateError;
 
+        // If this assignment was from a request, reactivate the request
+        if (assignment.request_id) {
+            const { error: reqError } = await supabase
+                .from('requests')
+                .update({ status: 'iade_alindi' })
+                .eq('id', assignment.request_id);
+
+            if (reqError) console.error('Error reactivating request:', reqError);
+        }
+
         window.assignmentsData = null; // Invalidate cache
+        window.requestsData = null; // Also invalidate requests cache
         window.materialsData = null; // Also invalidate materials cache
-        render(); // Reload
+        showToast('Zimmet iade alındı ve stok güncellendi', 'success');
+        render(true); // Reload with force refresh
 
     } catch (error) {
-        alert('Hata: ' + error.message);
+        showToast('Hata: ' + error.message, 'error');
     }
 }
 

@@ -1,5 +1,6 @@
 // Main App Module - Routing and Page Management
 import { supabase, updateCache } from './supabase-client.js';
+import { showConfirm } from './ui.js';
 
 // Current page state
 let currentPage = '';
@@ -48,7 +49,7 @@ function initRouting() {
     });
 
     // Handle browser back and Exit Trap
-    window.addEventListener('popstate', (e) => {
+    window.addEventListener('popstate', async (e) => {
         // PWA Trap Logic
         if (currentPage === 'dashboard' && isPWA) {
             // Check if we popped to the root state (trap triggered)
@@ -56,15 +57,18 @@ function initRouting() {
 
             if (isRoot) {
                 // We are at the 'root' attempt to exit
-                const intentToExit = confirm("Uygulamadan çıkmak istiyor musunuz?");
+                const intentToExit = await showConfirm(
+                    'Uygulamadan Çıkılsın mı?',
+                    'Bilişim Depo Takip uygulamasından çıkmak istediğinizden emin misiniz?',
+                    'Evet, Kapat'
+                );
+
                 if (!intentToExit) {
                     // User stayed: Restore trap
                     window.history.pushState({ page: 'dashboard', trap: true }, '', '#dashboard');
                     return;
                 } else {
                     // User wants to exit. 
-                    // We are at Root. One more back() closes the app or goes to previous browser page.
-                    // Note: In standalone PWA, this closes the app.
                     window.history.back();
                     return;
                 }
@@ -280,7 +284,6 @@ async function loadDashboard() {
     pageContent.innerHTML = `
         <div class="page-header">
             <h1>Ana Ekran</h1>
-            <p>Depo durumu ve genel bakış</p>
         </div>
         
         <div class="stats-grid">
@@ -363,35 +366,7 @@ async function loadDashboard() {
                 </table>
             </div>
         </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Son Eklenen Malzemeler</h2>
-                <a href="#materials" class="btn btn-sm btn-secondary">Tümünü Gör</a>
-            </div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Malzeme Adı</th>
-                            <th>Tür</th>
-                            <th>Marka/Model</th>
-                            <th>Adet</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${materials?.slice(0, 5).map(m => `
-                            <tr>
-                                <td data-label="Malzeme Adı">${m.name}</td>
-                                <td data-label="Tür">${m.type}</td>
-                                <td data-label="Marka/Model">${m.brand_model}</td>
-                                <td data-label="Adet"><span class="badge badge-info">${m.quantity}</span></td>
-                            </tr>
-                        `).join('') || '<tr><td colspan="4">Henüz malzeme eklenmemiş</td></tr>'}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+
     `;
 
     // Populate table initially
@@ -462,7 +437,19 @@ window.addEventListener('userLoggedIn', () => {
     initRouting();
 });
 
-// Export navigation function
-window.navigateTo = navigateTo;
+// Finalize app module and export reset function
+function resetApp() {
+    console.log('Resetting app state...');
+    currentPage = '';
+    isRoutesInitialized = false;
+    if (pageContent) pageContent.innerHTML = '';
 
-export { navigateTo, loadDashboard };
+    // Reset nav visual state
+    navItems.forEach(item => item.classList.remove('active'));
+}
+
+// Export navigation and reset functions
+window.navigateTo = navigateTo;
+window.resetApp = resetApp;
+
+export { navigateTo, loadDashboard, resetApp };

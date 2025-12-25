@@ -11,7 +11,6 @@ async function render() {
     pageContent.innerHTML = `
         <div class="page-header">
             <h1>Raporlar</h1>
-            <p>Detaylı raporlar ve analizler</p>
         </div>
         
         <div class="stats-grid">

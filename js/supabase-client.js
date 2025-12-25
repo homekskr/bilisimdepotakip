@@ -1,9 +1,9 @@
 // Supabase Client Initialization
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase configuration - TEMPORARY HARDCODED (move to .env later)
-const supabaseUrl = 'https://zhsiursfqooolkkbwvwb.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpoc2l1cnNmcW9vb2xra2J3dndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5OTg0MzAsImV4cCI6MjA4MTU3NDQzMH0.KqU6r08mKayCQbX-KdFVBr4L3bmhRFRS1BodUQFOiZI';
+// Supabase configuration
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Supabase credentials are missing!');

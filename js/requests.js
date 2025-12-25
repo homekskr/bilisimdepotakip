@@ -1,5 +1,6 @@
 // Requests Module (Talepler ve Onay Sistemi)
 import { supabase, checkUserRole } from './supabase-client.js';
+import { showToast, showConfirm } from './ui.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -39,27 +40,27 @@ async function render() {
         <div class="page-header">
             <div>
                 <h1>Talepler</h1>
-                <p>Malzeme talepleri ve onay süreçleri</p>
             </div>
-            <button class="btn btn-primary" id="add-request-btn">+ Yeni Talep</button>
+            ${userRole !== 'depo' ? '<button class="btn btn-primary" id="add-request-btn">+ Yeni Talep</button>' : ''}
         </div>
         
         <div class="card">
-            <div class="card-header">
-                <div class="search-container">
-                    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <input type="text" id="search-requests" placeholder="Talep eden, malzeme veya neden ara..." class="search-input">
+                <div class="table-filters" style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap; width: 100%; align-items: center;">
+                    <div class="search-container" style="flex: 1; min-width: 250px;">
+                        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="search-requests" placeholder="Talep eden, malzeme veya neden ara..." class="search-input">
+                    </div>
+                    <select id="status-filter" class="btn btn-sm btn-secondary" style="background: var(--bg-secondary); text-align: left; min-width: 150px; height: 38px;">
+                        <option value="all" ${currentFilter === 'all' ? 'selected' : ''}>Tüm Durumlar</option>
+                        <option value="beklemede" ${currentFilter === 'beklemede' ? 'selected' : ''}>Beklemede</option>
+                        <option value="onaylandi" ${currentFilter === 'onaylandi' ? 'selected' : ''}>Onaylandı</option>
+                        <option value="tamamlandi" ${currentFilter === 'tamamlandi' ? 'selected' : ''}>Zimmetlendi</option>
+                        <option value="reddedildi" ${currentFilter === 'reddedildi' ? 'selected' : ''}>Reddedildi</option>
+                    </select>
                 </div>
-                <div>
-                    <button class="btn btn-sm ${currentFilter === 'all' ? 'btn-primary' : 'btn-secondary'}" data-filter="all">Tümü</button>
-                    <button class="btn btn-sm ${currentFilter === 'beklemede' ? 'btn-primary' : 'btn-secondary'}" data-filter="beklemede">Beklemede</button>
-                    <button class="btn btn-sm ${currentFilter === 'onaylandi' ? 'btn-primary' : 'btn-secondary'}" data-filter="onaylandi">Onaylandı</button>
-                    <button class="btn btn-sm ${currentFilter === 'reddedildi' ? 'btn-primary' : 'btn-secondary'}" data-filter="reddedildi">Reddedildi</button>
-                </div>
-            </div>
             <div class="table-container">
                 <table>
                     <thead>
@@ -205,6 +206,29 @@ async function render() {
                 </div>
             </div>
         </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Assignment Detail Modal -->
+        <div id="assignment-detail-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Zimmet Detayları</h3>
+                    <button class="modal-close" id="close-assignment-detail-modal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body" id="assignment-detail-body">
+                    <!-- Detaylar buraya gelecek -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="close-assignment-detail-btn">Kapat</button>
+                </div>
+            </div>
+        </div>
     `;
 
     // Store requests data
@@ -217,16 +241,9 @@ async function render() {
         filterRequests(e.target.value);
     });
 
-    document.querySelectorAll('[data-filter]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            currentFilter = btn.dataset.filter;
-            filterRequests(document.getElementById('search-requests').value);
-
-            // Update button styles
-            document.querySelectorAll('[data-filter]').forEach(b => {
-                b.className = b.dataset.filter === currentFilter ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
-            });
-        });
+    document.getElementById('status-filter')?.addEventListener('change', (e) => {
+        currentFilter = e.target.value;
+        filterRequests(document.getElementById('search-requests').value);
     });
 
     document.getElementById('close-request-modal')?.addEventListener('click', closeRequestModal);
@@ -237,6 +254,10 @@ async function render() {
     document.getElementById('close-approval-modal')?.addEventListener('click', closeApprovalModal);
     document.getElementById('cancel-approval-btn')?.addEventListener('click', closeApprovalModal);
     document.getElementById('confirm-approval-btn')?.addEventListener('click', confirmApproval);
+
+    // Assignment detail modal events
+    document.getElementById('close-assignment-detail-modal')?.addEventListener('click', () => document.getElementById('assignment-detail-modal').classList.add('hidden'));
+    document.getElementById('close-assignment-detail-btn')?.addEventListener('click', () => document.getElementById('assignment-detail-modal').classList.add('hidden'));
 
     attachTableEventListeners();
 }
@@ -253,7 +274,7 @@ function renderRequestsTable(requests, userRole) {
         const isAdmin = userRole === 'admin';
         const canApproveAsManager = (isAdmin || userRole === 'yonetici') && r.status === 'beklemede' && !r.manager_approval;
         const canApproveAsPresident = (isAdmin || userRole === 'baskan') && r.manager_approval === 'onaylandi' && !r.president_approval;
-        const canCreateAssignment = (isAdmin || userRole === 'depo') && r.status === 'onaylandi'; // 'tamamlandi' means already assigned
+        const canCreateAssignment = (isAdmin || userRole === 'depo') && (r.status === 'onaylandi' || r.status === 'iade_alindi'); // 'tamamlandi' means already assigned
 
         return `
             <tr data-id="${r.id}">
@@ -288,6 +309,9 @@ function renderRequestsTable(requests, userRole) {
                         ${canCreateAssignment ? `
                             <button class="btn btn-sm btn-primary create-assignment-btn" data-id="${r.id}" data-material="${r.material_id}" data-quantity="${r.quantity}">Zimmet Çıkışı</button>
                         ` : ''}
+                        ${r.status === 'tamamlandi' ? `
+                            <button class="btn btn-sm btn-info view-assignment-details-btn" data-id="${r.id}">Zimmetlendi</button>
+                        ` : ''}
                         ${r.status === 'beklemede' && userRole === 'personel' && r.requested_by === window.currentUser?.id ? `
                             <button class="btn btn-sm btn-danger cancel-request-btn" data-id="${r.id}">İptal</button>
                         ` : ''}
@@ -313,6 +337,7 @@ function getStatusBadge(status) {
         'yonetici_onayi': '<span class="badge badge-info">Yönetici Onayında</span>',
         'baskan_onayi': '<span class="badge badge-info">Başkan Onayında</span>',
         'onaylandi': '<span class="badge badge-success">Onaylandı</span>',
+        'iade_alindi': '<span class="badge badge-warning" style="background: #e67e22;">İADE ALINDI</span>',
         'tamamlandi': '<span class="badge badge-success" style="background: var(--success-color); filter: brightness(0.9);">Zimmetlendi</span>',
         'reddedildi': '<span class="badge badge-danger">Reddedildi</span>'
     };
@@ -327,8 +352,10 @@ function filterRequests(query) {
     if (currentFilter !== 'all') {
         if (currentFilter === 'beklemede') {
             filtered = filtered.filter(r =>
-                ['beklemede', 'yonetici_onayi', 'baskan_onayi'].includes(r.status)
+                ['beklemede', 'yonetici_onayi', 'baskan_onayi', 'iade_alindi'].includes(r.status)
             );
+        } else if (currentFilter === 'tamamlandi') {
+            filtered = filtered.filter(r => r.status === 'tamamlandi');
         } else {
             filtered = filtered.filter(r => r.status === currentFilter);
         }
@@ -398,7 +425,7 @@ async function openApprovalModal(requestId, requestedType, role) {
         .order('name');
 
     if (error || !materials || materials.length === 0) {
-        alert(`${requestedType} türünde stokta uygun malzeme bulunamadı!`);
+        showToast(`${requestedType} türünde stokta uygun malzeme bulunamadı!`, 'warning');
         return;
     }
 
@@ -418,7 +445,7 @@ async function confirmApproval() {
     const role = document.getElementById('approval-role').value;
 
     if (!materialId) {
-        alert('Lütfen bir malzeme seçin');
+        showToast('Lütfen bir malzeme seçin', 'warning');
         return;
     }
 
@@ -443,7 +470,13 @@ async function saveRequest() {
     const reason = document.getElementById('request-reason').value;
 
     if (!requestedType || !institution || !building || !unit || !personnel || !title || !quantity || !reason) {
-        alert('Lütfen tüm alanları doldurun');
+        showToast('Lütfen tüm alanları doldurun', 'warning');
+        return;
+    }
+
+    // Role check
+    if (window.currentProfile?.role === 'depo') {
+        showToast('Depo görevlileri yeni talep oluşturamazlar.', 'error');
         return;
     }
 
@@ -470,7 +503,7 @@ async function saveRequest() {
         render(); // Reload
 
     } catch (error) {
-        alert('Hata: ' + error.message);
+        showToast('Hata: ' + error.message, 'error');
     }
 }
 
@@ -505,10 +538,11 @@ async function processManagerApproval(id, approved, materialId = null) {
         if (error) throw error;
 
         window.requestsData = null; // Invalidate cache
+        showToast(approved ? 'Talep onaylandı' : 'Talep reddedildi', approved ? 'success' : 'info');
         render(); // Reload
 
     } catch (error) {
-        alert('Hata: ' + error.message);
+        showToast('Hata: ' + error.message, 'error');
     }
 }
 
@@ -544,10 +578,11 @@ async function processPresidentApproval(id, approved, materialId = null) {
         if (error) throw error;
 
         window.requestsData = null; // Invalidate cache
+        showToast(approved ? 'Talep onaylandı' : 'Talep reddedildi', approved ? 'success' : 'info');
         render(); // Reload
 
     } catch (error) {
-        alert('Hata: ' + error.message);
+        showToast('Hata: ' + error.message, 'error');
     }
 }
 
@@ -558,7 +593,7 @@ async function createAssignmentFromRequest(requestId, materialId, quantity) {
     const request = window.requestsData?.find(r => r.id === requestId);
 
     if (!request) {
-        alert('Talep bilgisi bulunamadı!');
+        showToast('Talep bilgisi bulunamadı!', 'error');
         return;
     }
 
@@ -580,9 +615,13 @@ async function createAssignmentFromRequest(requestId, materialId, quantity) {
 
 // Cancel request
 async function cancelRequest(id) {
-    if (!confirm('Bu talebi iptal etmek istediğinizden emin misiniz?')) {
-        return;
-    }
+    const confirmed = await showConfirm(
+        'Talebi İptal Et?',
+        'Bu talebi iptal etmek istediğinizden emin misiniz?',
+        'Evet, İptal Et'
+    );
+
+    if (!confirmed) return;
 
     try {
         const { error } = await supabase
@@ -591,11 +630,81 @@ async function cancelRequest(id) {
             .eq('id', id);
 
         if (error) throw error;
-
+        showToast('Talep başarıyla iptal edildi', 'success');
         render(); // Reload
 
     } catch (error) {
-        alert('Hata: ' + error.message);
+        showToast('Hata: ' + error.message, 'error');
+    }
+}
+
+// View assignment details
+async function viewAssignmentDetails(requestId) {
+    const modal = document.getElementById('assignment-detail-modal');
+    const body = document.getElementById('assignment-detail-body');
+
+    body.innerHTML = '<div class="loading-spinner">Yükleniyor...</div>';
+    modal.classList.remove('hidden');
+
+    try {
+        const { data: assignment, error } = await supabase
+            .from('assignments')
+            .select(`
+                *,
+                materials (name, brand_model, barcode, type),
+                profiles!assignments_assigned_by_fkey (full_name)
+            `)
+            .eq('request_id', requestId)
+            .order('assigned_date', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (!assignment) {
+            body.innerHTML = '<div class="alert alert-warning">Bu talebe bağlı bir zimmet kaydı bulunamadı.</div>';
+            return;
+        }
+
+        body.innerHTML = `
+            <div class="detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">MALZEME</label>
+                    <div style="font-weight: 500;">${assignment.materials?.name}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">${assignment.materials?.brand_model}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">BARKOD</label>
+                    <div style="font-weight: 500;">${assignment.materials?.barcode || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">ZİMMETLENEN KİŞİ</label>
+                    <div style="font-weight: 500;">${assignment.target_personnel}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">${assignment.institution}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">TESLİM EDEN</label>
+                    <div style="font-weight: 500;">${assignment.profiles?.full_name || 'Bilinmiyor'}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">TARİH</label>
+                    <div style="font-weight: 500;">${new Date(assignment.assigned_date).toLocaleDateString('tr-TR')}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">ADET</label>
+                    <div style="font-weight: 500;">${assignment.quantity}</div>
+                </div>
+                <div class="detail-item" style="grid-column: span 2;">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">DURUM</label>
+                    <span class="badge ${assignment.status === 'aktif' ? 'badge-success' : 'badge-warning'}">
+                        ${assignment.status === 'aktif' ? 'Zimmet Aktif' : 'İade Alındı'}
+                    </span>
+                </div>
+            </div>
+        `;
+
+    } catch (error) {
+        body.innerHTML = `<div class="error">Detaylar yüklenirken hata oluştu: ${error.message}</div>`;
     }
 }
 
@@ -626,6 +735,10 @@ function attachTableEventListeners() {
 
     document.querySelectorAll('.cancel-request-btn').forEach(btn => {
         btn.addEventListener('click', () => cancelRequest(btn.dataset.id));
+    });
+
+    document.querySelectorAll('.view-assignment-details-btn').forEach(btn => {
+        btn.addEventListener('click', () => viewAssignmentDetails(btn.dataset.id));
     });
 }
 
