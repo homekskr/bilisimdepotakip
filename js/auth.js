@@ -1,6 +1,7 @@
 // Authentication Module
 import { supabase, getUserProfile, updateCache } from './supabase-client.js';
 import { showToast, showConfirm } from './ui.js';
+import { initNotifications, toggleNotificationPanel } from './notifications.js';
 
 // DOM Elements
 const loginScreen = document.getElementById('login-screen');
@@ -155,6 +156,20 @@ if (logoutBtn) {
         }
     });
 }
+// Notification Toggle
+document.getElementById('notification-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleNotificationPanel();
+});
+
+// Close notification panel when clicking outside
+document.addEventListener('click', (e) => {
+    const panel = document.getElementById('notification-panel');
+    const btn = document.getElementById('notification-btn');
+    if (panel && !panel.classList.contains('hidden') && !panel.contains(e.target) && !btn.contains(e.target)) {
+        panel.classList.add('hidden');
+    }
+});
 
 // Single initialization entry point
 async function initializeAuth() {
@@ -182,6 +197,7 @@ async function initializeAuth() {
                 ]).catch(err => console.error('Early pre-fetch error:', err));
 
                 showApp(session.user, profile);
+                initNotifications(); // Initialize notifications
             } else {
                 showLogin();
             }
@@ -207,6 +223,7 @@ async function initializeAuth() {
                         ]).catch(err => console.error('Early pre-fetch error:', err));
 
                         showApp(session.user, profile);
+                        initNotifications(); // Initialize notifications
                     }
                 }
             } else if (event === 'SIGNED_OUT') {
