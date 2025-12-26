@@ -122,7 +122,7 @@ function renderNotificationList() {
     }
 
     container.innerHTML = notifications.map(n => `
-        <div class="notification-item ${n.is_read ? 'read' : 'unread'}" onclick="window.location.hash='${n.link || ''}'">
+        <div class="notification-item ${n.is_read ? 'read' : 'unread'}" onclick="window.notificationsModule.handleNotificationClick('${n.link || ''}')">
             <div class="notif-icon ${n.type}">
                 ${getIconForType(n.type)}
             </div>
@@ -152,5 +152,13 @@ export function toggleNotificationPanel() {
     }
 }
 
+export function handleNotificationClick(link) {
+    if (link) {
+        window.location.hash = link;
+        // If already on the page, force reload logic might be needed, but hash change usually handles simple nav
+    }
+    document.getElementById('notification-panel').classList.add('hidden');
+}
+
 // Expose to window for inline calls if needed
-window.notificationsModule = { initNotifications, toggleNotificationPanel };
+window.notificationsModule = { initNotifications, toggleNotificationPanel, handleNotificationClick };
