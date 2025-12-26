@@ -12,7 +12,8 @@
     "@supabase/supabase-js": "^2.39.0",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
-    "quagga": "^0.12.1"
+    "quagga": "^0.12.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "dotenv": "^17.2.3",
