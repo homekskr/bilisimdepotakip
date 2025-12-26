@@ -154,10 +154,23 @@ export function toggleNotificationPanel() {
 
 export function handleNotificationClick(link) {
     if (link) {
-        window.location.hash = link;
-        // If already on the page, force reload logic might be needed, but hash change usually handles simple nav
+        // Remove # if present
+        const page = link.replace(/^#/, '');
+
+        // Use the global navigateTo function from app.js
+        if (typeof window.navigateTo === 'function') {
+            window.navigateTo(page);
+        } else {
+            // Fallback for direct hash change
+            window.location.hash = page;
+        }
     }
-    document.getElementById('notification-panel').classList.add('hidden');
+
+    // Close panel
+    const panel = document.getElementById('notification-panel');
+    if (panel) {
+        panel.classList.add('hidden');
+    }
 }
 
 // Expose to window for inline calls if needed
