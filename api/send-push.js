@@ -1,4 +1,5 @@
-const webpush = require('web-push');
+import webpush from 'web-push';
+import { createClient } from '@supabase/supabase-js';
 
 // VAPID keys will be set as Vercel environment variables
 const vapidKeys = {
@@ -32,8 +33,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Import Supabase client (we'll need to create this)
-        const { createClient } = require('@supabase/supabase-js');
+        // Create Supabase client
         const supabase = createClient(
             process.env.VITE_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_KEY
