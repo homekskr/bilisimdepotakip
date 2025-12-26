@@ -14,7 +14,35 @@
     <script>
         window.addEventListener('error', function (e) {
             console.error('Global Error Catch:', e.message, 'at', e.filename, ':', e.lineno);
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
+                loadingScreen.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: white;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                        <h3>Uygulama Başlatılamadı</h3>
+                        <p>${e.message}</p>
+                        <p style="font-size: 0.8em; opacity: 0.8; margin-top: 10px;">Vercel ortam değişkenlerini kontrol ediniz.</p>
+                        <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Yeniden Dene</button>
+                    </div>
+                `;
+            }
         });
+
+        // Loading Timeout
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
+                loadingScreen.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: white;">
+                         <div style="font-size: 48px; margin-bottom: 20px;">⏱️</div>
+                        <h3>Bağlantı Zaman Aşımı</h3>
+                        <p>Uygulama sunucuya bağlanamadı.</p>
+                        <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Yeniden Dene</button>
+                    </div>
+                `;
+            }
+        }, 10000); // 10 seconds timeout
+
         console.log('Index.html initialized');
     </script>
 </head>

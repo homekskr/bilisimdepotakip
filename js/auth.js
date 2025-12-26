@@ -161,61 +161,68 @@ async function initializeAuth() {
     console.log('Initializing auth flow...');
 
     // 1. Check current session immediately
-    const { data: { session }, error } = await supabase.auth.getSession();
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-    if (error) {
-        console.error('Auth check error:', error);
-        showLogin();
-        return;
-    }
-
-    if (session && session.user) {
-        console.log('Valid session found, fetching profile...');
-        const profile = await getUserProfile(session.user.id);
-        if (profile) {
-            // Background pre-fetch dashboard data
-            Promise.all([
-                supabase.from('materials').select('*').then(({ data }) => updateCache('materials', data || [])),
-                supabase.from('assignments').select('*').eq('status', 'aktif').then(({ data }) => updateCache('assignments', data || [])),
-                supabase.from('requests').select('*').in('status', ['beklemede', 'yonetici_onayi', 'baskan_onayi']).then(({ data }) => updateCache('requests', data || []))
-            ]).catch(err => console.error('Early pre-fetch error:', err));
-
-            showApp(session.user, profile);
-        } else {
+        if (error) {
+            console.error('Auth check error:', error);
             showLogin();
+            return;
         }
-    } else {
-        console.log('No active session.');
-        showLogin();
-    }
 
-    // 2. Setup listener for future changes (login/logout/token refresh)
-    supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('Auth state changed:', event);
+        if (session && session.user) {
+            console.log('Valid session found, fetching profile...');
+            const profile = await getUserProfile(session.user.id);
+            if (profile) {
+                // Background pre-fetch dashboard data
+                Promise.all([
+                    supabase.from('materials').select('*').then(({ data }) => updateCache('materials', data || [])),
+                    supabase.from('assignments').select('*').eq('status', 'aktif').then(({ data }) => updateCache('assignments', data || [])),
+                    supabase.from('requests').select('*').in('status', ['beklemede', 'yonetici_onayi', 'baskan_onayi']).then(({ data }) => updateCache('requests', data || []))
+                ]).catch(err => console.error('Early pre-fetch error:', err));
 
-        if (event === 'SIGNED_IN' && session) {
-            // Only fetch if profile missing or user changed
-            if (!window.currentProfile || window.currentProfile.id !== session.user.id) {
-                const profile = await getUserProfile(session.user.id);
-                if (profile) {
-                    // Background pre-fetch dashboard data
-                    Promise.all([
-                        supabase.from('materials').select('*').then(({ data }) => updateCache('materials', data || [])),
-                        supabase.from('assignments').select('*').eq('status', 'aktif').then(({ data }) => updateCache('assignments', data || [])),
-                        supabase.from('requests').select('*').in('status', ['beklemede', 'yonetici_onayi', 'baskan_onayi']).then(({ data }) => updateCache('requests', data || []))
-                    ]).catch(err => console.error('Early pre-fetch error:', err));
-
-                    showApp(session.user, profile);
-                }
+                showApp(session.user, profile);
+            } else {
+                showLogin();
             }
-        } else if (event === 'SIGNED_OUT') {
-            window.currentUser = null;
-            window.currentProfile = null;
-            window.location.hash = ''; // Clear hash (e.g., #materials) on logout
-            if (typeof window.resetApp === 'function') window.resetApp(); // Reset routing state
+        } else {
+            console.log('No active session.');
             showLogin();
         }
-    });
+
+        // 2. Setup listener for future changes (login/logout/token refresh)
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state changed:', event);
+
+            if (event === 'SIGNED_IN' && session) {
+                // Only fetch if profile missing or user changed
+                if (!window.currentProfile || window.currentProfile.id !== session.user.id) {
+                    const profile = await getUserProfile(session.user.id);
+                    if (profile) {
+                        // Background pre-fetch dashboard data
+                        Promise.all([
+                            supabase.from('materials').select('*').then(({ data }) => updateCache('materials', data || [])),
+                            supabase.from('assignments').select('*').eq('status', 'aktif').then(({ data }) => updateCache('assignments', data || [])),
+                            supabase.from('requests').select('*').in('status', ['beklemede', 'yonetici_onayi', 'baskan_onayi']).then(({ data }) => updateCache('requests', data || []))
+                        ]).catch(err => console.error('Early pre-fetch error:', err));
+
+                        showApp(session.user, profile);
+                    }
+                }
+            } else if (event === 'SIGNED_OUT') {
+                window.currentUser = null;
+                window.currentProfile = null;
+                window.location.hash = ''; // Clear hash (e.g., #materials) on logout
+                if (typeof window.resetApp === 'function') window.resetApp(); // Reset routing state
+                showLogin();
+            }
+        });
+    } catch (err) {
+        console.error('Auth Initialization Error:', err);
+        // Let global handler pick this up or show toast
+        showToast('Başlatma hatası: ' + err.message, 'error');
+        showLogin(); // Fallback
+    }
 }
 
 // Run initialization

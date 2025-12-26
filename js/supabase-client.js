@@ -6,7 +6,9 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Supabase credentials are missing!');
+    const errorMsg = 'Supabase credentials are missing! Please check your .env file or Vercel Environment Variables.';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
 }
 
 // Create Supabase client
