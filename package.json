@@ -16,6 +16,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "vite": "^5.0.8"
   }
