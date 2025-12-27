@@ -9,30 +9,10 @@ export async function initNotifications() {
     const user = window.currentUser;
     if (!user) return;
 
-    // 1. Register Service Worker
-    if ('serviceWorker' in navigator) {
-        try {
-            const registration = await navigator.serviceWorker.register('/sw.js');
-            console.log('SW Registered:', registration);
-
-            // Request Notification Permission
-            if (Notification.permission === 'default') {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    await subscribeToPush(registration);
-                }
-            } else if (Notification.permission === 'granted') {
-                await subscribeToPush(registration);
-            }
-        } catch (error) {
-            console.error('SW Registration failed:', error);
-        }
-    }
-
-    // 2. Initial Fetch
+    // Initial Fetch
     await fetchNotifications();
 
-    // 3. Realtime Subscription
+    // Realtime Subscription
     supabase
         .channel('public:notifications')
         .on(
@@ -49,82 +29,6 @@ export async function initNotifications() {
         )
         .subscribe();
 }
-
-// VAPID Public Key (from generated keys)
-const VAPID_PUBLIC_KEY = 'BPVBuZN7-1kproJaPnFnB134NbrgHRPju3ox36PoPKW2hgu5ESP5L7j5xc0qy_9k4u5qJQbZAAI44N72IzLShsA';
-
-async function subscribeToPush(registration) {
-    try {
-        // Check if already subscribed
-        let subscription = await registration.pushManager.getSubscription();
-
-        if (!subscription) {
-            // Subscribe to push
-            subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            });
-            console.log('Push subscription created:', subscription);
-        }
-
-        // Save subscription to database
-        await savePushSubscription(subscription);
-    } catch (error) {
-        console.error('Push subscription failed:', error);
-    }
-}
-
-async function savePushSubscription(subscription) {
-    const user = window.currentUser;
-    if (!user) return;
-
-    const subscriptionData = {
-        user_id: user.id,
-        endpoint: subscription.endpoint,
-        keys: {
-            p256dh: arrayBufferToBase64(subscription.getKey('p256dh')),
-            auth: arrayBufferToBase64(subscription.getKey('auth'))
-        }
-    };
-
-    const { error } = await supabase
-        .from('push_subscriptions')
-        .upsert(subscriptionData, {
-            onConflict: 'user_id,endpoint'
-        });
-
-    if (error) {
-        console.error('Error saving push subscription:', error);
-    } else {
-        console.log('Push subscription saved successfully');
-    }
-}
-
-// Helper functions for encoding
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-        .replace(/\-/g, '+')
-        .replace(/_/g, '/');
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-}
-
-function arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return window.btoa(binary);
-}
-
 
 async function fetchNotifications() {
     const { data, error } = await supabase
