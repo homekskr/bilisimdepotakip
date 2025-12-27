@@ -202,7 +202,25 @@ function renderNotificationList() {
         return;
     }
 
-    container.innerHTML = notifications.map(n => `
+    // Add "Clear All" button at the top
+    const clearButton = notifications.filter(n => n.is_read).length > 0
+        ? `<div style="padding: 0.5rem; text-align: right; border-bottom: 1px solid var(--glass-border);">
+             <button onclick="window.notificationsModule.clearAllRead()" style="
+                 background: var(--danger);
+                 color: white;
+                 border: none;
+                 padding: 0.4rem 0.8rem;
+                 border-radius: 6px;
+                 cursor: pointer;
+                 font-size: 0.85rem;
+                 transition: opacity 0.2s;
+             " onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                 Okunanları Temizle
+             </button>
+           </div>`
+        : '';
+
+    container.innerHTML = clearButton + notifications.map(n => `
         <div class="notification-item ${n.is_read ? 'read' : 'unread'}" onclick="window.notificationsModule.handleNotificationClick('${n.link || ''}')">
             <div class="notif-icon ${n.type}">
                 ${getIconForType(n.type)}
@@ -254,5 +272,34 @@ export function handleNotificationClick(link) {
     }
 }
 
+export async function clearAllRead() {
+    const readNotifications = notifications.filter(n => n.is_read);
+    if (readNotifications.length === 0) {
+        showToast('Temizlenecek okunmuş bildirim yok', 'info');
+        return;
+    }
+
+    const readIds = readNotifications.map(n => n.id);
+
+    // Optimistic update
+    notifications = notifications.filter(n => !n.is_read);
+    renderNotificationList();
+
+    // Delete from database
+    const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .in('id', readIds);
+
+    if (error) {
+        console.error('Error deleting notifications:', error);
+        showToast('Bildirimler temizlenirken hata oluştu', 'error');
+        // Revert on error
+        await fetchNotifications();
+    } else {
+        showToast(`${readIds.length} bildirim temizlendi`, 'success');
+    }
+}
+
 // Expose to window for inline calls if needed
-window.notificationsModule = { initNotifications, toggleNotificationPanel, handleNotificationClick };
+window.notificationsModule = { initNotifications, toggleNotificationPanel, handleNotificationClick, clearAllRead };
