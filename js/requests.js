@@ -392,6 +392,46 @@ async function openRequestModal() {
     typeSelect.innerHTML = '<option value="">Talep Türü Seçin</option>' +
         materialTypes.map(t => `<option value="${t}">${t}</option>`).join('');
 
+    // Remove old event listener if exists
+    const oldListener = typeSelect._stockCheckListener;
+    if (oldListener) {
+        typeSelect.removeEventListener('change', oldListener);
+    }
+
+    // Add stock check on type selection
+    const stockCheckListener = async (e) => {
+        const selectedType = e.target.value;
+        if (!selectedType) return;
+
+        try {
+            // Check total stock for selected type
+            const { data: materials, error } = await supabase
+                .from('materials')
+                .select('stock')
+                .eq('type', selectedType);
+
+            if (error) {
+                console.error('Stock check error:', error);
+                return;
+            }
+
+            // Calculate total stock
+            const totalStock = materials?.reduce((sum, m) => sum + (m.stock || 0), 0) || 0;
+
+            if (totalStock === 0) {
+                showToast(
+                    'TALEP ETTİĞİNİZ ÜRÜN DEPODA YOKTUR ANCAK TALEBİNİZ ALINACAKTIR. MALZEMENİN DEPOYA GİRİŞİ OLDUĞUNDA TALEBİNİZE DÖNÜŞ YAPILACAKTIR.',
+                    'warning'
+                );
+            }
+        } catch (err) {
+            console.error('Stock check failed:', err);
+        }
+    };
+
+    typeSelect._stockCheckListener = stockCheckListener;
+    typeSelect.addEventListener('change', stockCheckListener);
+
     document.getElementById('request-form').reset();
     modal.classList.remove('hidden');
 }
