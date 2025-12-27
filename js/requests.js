@@ -407,7 +407,7 @@ async function openRequestModal() {
             // Check total stock for selected type
             const { data: materials, error } = await supabase
                 .from('materials')
-                .select('stock')
+                .select('quantity')
                 .eq('type', selectedType);
 
             if (error) {
@@ -416,7 +416,7 @@ async function openRequestModal() {
             }
 
             // Calculate total stock
-            const totalStock = materials?.reduce((sum, m) => sum + (m.stock || 0), 0) || 0;
+            const totalStock = materials?.reduce((sum, m) => sum + (m.quantity || 0), 0) || 0;
 
             if (totalStock === 0) {
                 showToast(
