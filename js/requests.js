@@ -392,6 +392,26 @@ async function openRequestModal() {
     typeSelect.innerHTML = '<option value="">Talep Türü Seçin</option>' +
         materialTypes.map(t => `<option value="${t}">${t}</option>`).join('');
 
+    // Add stock check on type selection
+    typeSelect.addEventListener('change', async (e) => {
+        const selectedType = e.target.value;
+        if (!selectedType) return;
+
+        // Check stock for selected type
+        const { data: materials } = await supabase
+            .from('materials')
+            .select('stock')
+            .eq('type', selectedType)
+            .gt('stock', 0);
+
+        if (!materials || materials.length === 0) {
+            showToast(
+                'TALEP ETTİĞİNİZ ÜRÜN DEPODA YOKTUR ANCAK TALEBİNİZ ALINACAKTIR. MALZEMENİN DEPOYA GİRİŞİ OLDUĞUNDA TALEBİNİZE DÖNÜŞ YAPILACAKTIR.',
+                'warning'
+            );
+        }
+    });
+
     document.getElementById('request-form').reset();
     modal.classList.remove('hidden');
 }
