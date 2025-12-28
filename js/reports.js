@@ -33,9 +33,21 @@ async function render() {
             </div>
             
             <div class="card" style="cursor: pointer;" id="report-stock">
-                <h3>📊 Stok Durumu</h3>
-                <p>Malzeme türlerine göre stok analizi</p>
+                <h3>📊 Tür Bazlı Stok</h3>
+                <p>Malzeme türlerine göre genel özet</p>
                 <button class="btn btn-primary btn-sm">Rapor Al</button>
+            </div>
+
+            <div class="card" style="cursor: pointer;" id="report-critical">
+                <h3>⚠️ Kritik Stok</h3>
+                <p>Miktarı azalan malzemeler (≤ 2 adet)</p>
+                <button class="btn btn-danger btn-sm">Rapor Al</button>
+            </div>
+
+            <div class="card" style="cursor: pointer;" id="report-personnel">
+                <h3>👥 Personel Özeti</h3>
+                <p>Kişi bazlı aktif zimmet listesi</p>
+                <button class="btn btn-secondary btn-sm">Rapor Al</button>
             </div>
         </div>
         
@@ -63,6 +75,8 @@ async function render() {
     document.getElementById('report-assignments')?.addEventListener('click', () => generateAssignmentsReport());
     document.getElementById('report-requests')?.addEventListener('click', () => generateRequestsReport());
     document.getElementById('report-stock')?.addEventListener('click', () => generateStockReport());
+    document.getElementById('report-critical')?.addEventListener('click', () => generateCriticalStockReport());
+    document.getElementById('report-personnel')?.addEventListener('click', () => generatePersonnelReport());
 
     document.getElementById('report-search-input')?.addEventListener('input', (e) => {
         filterReportData(e.target.value);
@@ -92,22 +106,21 @@ async function generateInventoryReport() {
 
     preview.innerHTML = `
         <div class="page-header">
-            <h2>Envanter Raporu</h2>
-            <button class="btn btn-primary" id="download-inventory-pdf">PDF İndir</button>
+            <h2>Detaylı Envanter Listesi</h2>
+            <button class="btn btn-primary" id="download-inventory-pdf">📄 PDF Rapor Al</button>
         </div>
         <p><strong>Toplam Malzeme Türü:</strong> ${totalItems}</p>
         <p><strong>Toplam Adet:</strong> ${totalQuantity}</p>
-        <p><strong>Rapor Tarihi:</strong> ${new Date().toLocaleDateString('tr-TR')}</p>
         <br>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th>Malzeme Adı</th>
+                        <th>Durum</th>
                         <th>Tür</th>
+                        <th>Malzeme Adı</th>
                         <th>Marka/Model</th>
                         <th>Adet</th>
-                        <th>Eklenme Tarihi</th>
                     </tr>
                 </thead>
                 <tbody id="report-table-body">
@@ -127,12 +140,11 @@ function renderInventoryTableRows(materials) {
         return '<tr><td colspan="5">Veri yok</td></tr>';
     }
     return materials.map(m => `
-        <tr>
-            <td data-label="Malzeme Adı">${m.name}</td>
+            <td data-label="Durum">${m.condition}</td>
             <td data-label="Tür">${m.type}</td>
+            <td data-label="Malzeme Adı">${m.name}</td>
             <td data-label="Marka/Model">${m.brand_model}</td>
             <td data-label="Adet">${m.quantity}</td>
-            <td data-label="Eklenme Tarihi">${new Date(m.created_at).toLocaleDateString('tr-TR')}</td>
         </tr>
     `).join('');
 }
@@ -164,22 +176,22 @@ async function generateAssignmentsReport() {
 
     preview.innerHTML = `
         <div class="page-header">
-            <h2>Zimmet Raporu</h2>
-            <button class="btn btn-primary" id="download-assignments-pdf">PDF İndir</button>
+            <h2>Giriş/Çıkış ve Zimmet Raporu</h2>
+            <button class="btn btn-primary" id="download-assignments-pdf">📄 PDF Rapor Al</button>
         </div>
         <p><strong>Aktif Zimmetler:</strong> ${activeCount}</p>
         <p><strong>İade Edilenler:</strong> ${returnedCount}</p>
-        <p><strong>Rapor Tarihi:</strong> ${new Date().toLocaleDateString('tr-TR')}</p>
         <br>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>Malzeme</th>
-                        <th>Zimmetli</th>
+                        <th>Marka/Model</th>
+                        <th>Zimmetlenen</th>
+                        <th>Unvan</th>
                         <th>Adet</th>
-                        <th>Zimmet Tarihi</th>
-                        <th>İade Tarihi</th>
+                        <th>Tarih</th>
                         <th>Durum</th>
                     </tr>
                 </thead>
@@ -200,18 +212,12 @@ function renderAssignmentsTableRows(assignments) {
         return '<tr><td colspan="6">Veri yok</td></tr>';
     }
     return assignments.map(a => `
-        <tr>
-            <td data-label="Malzeme">
-                <div>${a.materials?.name || 'Bilinmiyor'}</div>
-                <div class="text-sub">${a.materials?.brand_model || ''}</div>
-            </td>
-            <td data-label="Zimmetli">
-                <div>${a.assigned_to}</div>
-                <div class="text-sub">${a.target_title || ''}</div>
-            </td>
+            <td data-label="Malzeme">${a.materials?.name || 'Bilinmiyor'}</td>
+            <td data-label="Marka/Model">${a.materials?.brand_model || '-'}</td>
+            <td data-label="Zimmetlene">${a.assigned_to}</td>
+            <td data-label="Unvan">${a.target_title || '-'}</td>
             <td data-label="Adet">${a.quantity}</td>
-            <td data-label="Zimmet Tarihi">${new Date(a.assigned_date).toLocaleDateString('tr-TR')}</td>
-            <td data-label="İade Tarihi">${a.return_date ? new Date(a.return_date).toLocaleDateString('tr-TR') : '-'}</td>
+            <td data-label="Tarih">${new Date(a.assigned_date).toLocaleDateString('tr-TR')}</td>
             <td data-label="Durum">${a.status === 'aktif' ? 'Aktif' : 'İade Edildi'}</td>
         </tr>
     `).join('');
@@ -245,13 +251,12 @@ async function generateRequestsReport() {
 
     preview.innerHTML = `
         <div class="page-header">
-            <h2>Talep Raporu</h2>
-            <button class="btn btn-primary" id="download-requests-pdf">PDF İndir</button>
+            <h2>Talep ve Onay Geçmişi Raporu</h2>
+            <button class="btn btn-primary" id="download-requests-pdf">📄 PDF Rapor Al</button>
         </div>
         <p><strong>Bekleyen:</strong> ${pending}</p>
         <p><strong>Onaylanan:</strong> ${approved}</p>
         <p><strong>Reddedilen:</strong> ${rejected}</p>
-        <p><strong>Rapor Tarihi:</strong> ${new Date().toLocaleDateString('tr-TR')}</p>
         <br>
         <div class="table-container">
             <table>
@@ -261,7 +266,7 @@ async function generateRequestsReport() {
                         <th>Malzeme</th>
                         <th>Adet</th>
                         <th>Durum</th>
-                        <th>Tarih</th>
+                        <th>Talep Tarihi</th>
                     </tr>
                 </thead>
                 <tbody id="report-table-body">
@@ -281,18 +286,11 @@ function renderRequestsTableRows(requests) {
         return '<tr><td colspan="5">Veri yok</td></tr>';
     }
     return requests.map(r => `
-        <tr>
-            <td data-label="Talep Eden">
-                <div>${r.profiles?.full_name || 'Bilinmiyor'}</div>
-                <div class="text-sub">${r.target_title || ''}</div>
-            </td>
-            <td data-label="Malzeme">
-                <div>${r.materials?.name || 'Bilinmiyor'}</div>
-                <div class="text-sub">${r.materials?.brand_model || ''}</div>
-            </td>
+            <td data-label="Talep Eden">${r.profiles?.full_name || 'Bilinmiyor'}</td>
+            <td data-label="Malzeme">${r.materials?.name || 'Bilinmiyor'}</td>
             <td data-label="Adet">${r.quantity}</td>
-            <td data-label="Durum">${r.status}</td>
-            <td data-label="Tarih">${new Date(r.created_at).toLocaleDateString('tr-TR')}</td>
+            <td data-label="Durum">${r.status.toUpperCase()}</td>
+            <td data-label="Talep Tarihi">${new Date(r.created_at).toLocaleDateString('tr-TR')}</td>
         </tr>
     `).join('');
 }
@@ -327,10 +325,9 @@ async function generateStockReport() {
 
     preview.innerHTML = `
         <div class="page-header">
-            <h2>Stok Durumu Raporu</h2>
-            <button class="btn btn-primary" id="download-stock-pdf">PDF İndir</button>
+            <h2>Tür Bazlı Stok Özeti</h2>
+            <button class="btn btn-primary" id="download-stock-pdf">📄 PDF Rapor Al</button>
         </div>
-        <p><strong>Rapor Tarihi:</strong> ${new Date().toLocaleDateString('tr-TR')}</p>
         <br>
         <div class="table-container">
             <table>
@@ -338,7 +335,7 @@ async function generateStockReport() {
                     <tr>
                         <th>Malzeme Türü</th>
                         <th>Çeşit Sayısı</th>
-                        <th>Toplam Adet</th>
+                        <th>Toplam Stok</th>
                     </tr>
                 </thead>
                 <tbody id="report-table-body">
@@ -406,15 +403,323 @@ function filterReportData(query) {
             );
             tbody.innerHTML = renderStockTableRows(filtered);
             break;
+        case 'personnel':
+            filtered = currentReportData.filter(p =>
+                p.name.toLowerCase().includes(q) ||
+                (p.title || '').toLowerCase().includes(q)
+            );
+            tbody.innerHTML = filtered.map(p => `
+                <tr>
+                    <td>
+                        <strong>${p.name}</strong><br>
+                        <small>${p.title || '-'}</small>
+                    </td>
+                    <td>
+                        ${p.items.map(i => `${i.materials?.name} (${i.quantity} adet)`).join(', ')}
+                    </td>
+                    <td style="text-align: center;">${p.items.reduce((sum, i) => sum + i.quantity, 0)}</td>
+                </tr>
+            `).join('');
+            break;
     }
 }
 
-// Download PDF (simplified - using browser print)
-function downloadPDF(title, data, type) {
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank');
+// Generate Critical Stock Report
+async function generateCriticalStockReport() {
+    const preview = document.getElementById('report-preview');
+    const searchContainer = document.getElementById('report-search-container');
 
-    const content = document.getElementById('report-preview').innerHTML;
+    preview.innerHTML = '<div class="loading">Kritik stoklar analiz ediliyor...</div>';
+
+    const { data: materials } = await supabase
+        .from('materials')
+        .select('*')
+        .lte('quantity', 2)
+        .order('quantity', { ascending: true });
+
+    currentReportData = materials || [];
+    currentReportType = 'inventory'; // Can reuse inventory filtering
+    searchContainer.style.display = 'block';
+
+    preview.innerHTML = `
+        <div class="page-header">
+            <h2 style="color: var(--danger);">⚠️ Kritik Stok Raporu (≤ 2 Adet)</h2>
+            <button class="btn btn-danger" id="download-critical-pdf">📄 PDF Rapor Al</button>
+        </div>
+        <p>Sistemde stok miktarı kritik seviyeye ulaşmış <strong>${materials?.length || 0}</strong> farklı malzeme türü bulunmaktadır.</p>
+        <br>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tür</th>
+                        <th>Malzeme Adı</th>
+                        <th>Marka/Model</th>
+                        <th>Mevcut Stok</th>
+                    </tr>
+                </thead>
+                <tbody id="report-table-body">
+                    ${materials.map(m => `
+                        <tr style="background-color: rgba(239, 68, 68, 0.05);">
+                            <td>${m.type}</td>
+                            <td>${m.name}</td>
+                            <td>${m.brand_model}</td>
+                            <td style="color: var(--danger); font-weight: bold;">${m.quantity}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    document.getElementById('download-critical-pdf')?.addEventListener('click', () => {
+        downloadPDF('Kritik Stok Raporu', materials, 'critical');
+    });
+}
+
+// Generate Personnel Summary Report
+async function generatePersonnelReport() {
+    const preview = document.getElementById('report-preview');
+    const searchContainer = document.getElementById('report-search-container');
+
+    preview.innerHTML = '<div class="loading">Personel zimmet bilgileri toplanıyor...</div>';
+
+    const { data: assignments } = await supabase
+        .from('assignments')
+        .select(`
+            *,
+            materials (name, brand_model)
+        `)
+        .eq('status', 'aktif')
+        .order('assigned_to', { ascending: true });
+
+    // Group by person
+    const byPerson = {};
+    assignments?.forEach(a => {
+        if (!byPerson[a.assigned_to]) {
+            byPerson[a.assigned_to] = { name: a.assigned_to, title: a.target_title, items: [] };
+        }
+        byPerson[a.assigned_to].items.push(a);
+    });
+
+    const personnelData = Object.values(byPerson);
+    currentReportData = personnelData;
+    currentReportType = 'personnel';
+    searchContainer.style.display = 'block';
+
+    preview.innerHTML = `
+        <div class="page-header">
+            <h2>Personel Zimmet Özeti</h2>
+            <button class="btn btn-primary" id="download-personnel-pdf">📄 PDF Rapor Al</button>
+        </div>
+        <p>Sistemde aktif zimmeti bulunan <strong>${personnelData.length}</strong> personel listelenmektedir.</p>
+        <br>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Personel / Unvan</th>
+                        <th>Zimmetli Malzemeler</th>
+                        <th>Toplam Adet</th>
+                    </tr>
+                </thead>
+                <tbody id="report-table-body">
+                    ${personnelData.map(p => `
+                        <tr>
+                            <td>
+                                <strong>${p.name}</strong><br>
+                                <small>${p.title || '-'}</small>
+                            </td>
+                            <td>
+                                ${p.items.map(i => `${i.materials?.name} (${i.quantity} adet)`).join(', ')}
+                            </td>
+                            <td style="text-align: center;">${p.items.reduce((sum, i) => sum + i.quantity, 0)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    document.getElementById('download-personnel-pdf')?.addEventListener('click', () => {
+        downloadPDF('Personel Zimmet Özeti', personnelData, 'personnel');
+    });
+}
+
+// Download PDF with Standardized Template
+function downloadPDF(title, data, type) {
+    const printWindow = window.open('', '_blank');
+    const reportDate = new Date().toLocaleString('tr-TR');
+
+    let tableHtml = '';
+
+    // Header for PDF
+    const pdfHeader = `
+        <div class="pdf-report-date">RAPOR TARİHİ: ${reportDate}</div>
+        <div class="pdf-header">
+            KAHRAMANMARAŞ İL SAĞLIK MÜDÜRLÜĞÜ<br>
+            BİLİŞİM DEPOSU ${title.toUpperCase()}
+        </div>
+    `;
+
+    // Process data based on report type for the printable table
+    switch (type) {
+        case 'inventory':
+            tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">Durum</th>
+                            <th style="width: 120px;">Tür</th>
+                            <th>Malzeme Adı</th>
+                            <th>Marka/Model</th>
+                            <th style="width: 40px;">Adet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(m => `
+                            <tr>
+                                <td>${m.condition}</td>
+                                <td>${m.type}</td>
+                                <td>${m.name}</td>
+                                <td>${m.brand_model}</td>
+                                <td style="text-align: center;">${m.quantity}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            break;
+        case 'assignments':
+            tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Malzeme</th>
+                            <th>Marka/Model</th>
+                            <th>Zimmetlenen</th>
+                            <th>Unvan</th>
+                            <th style="width: 30px;">Adet</th>
+                            <th style="width: 70px;">Tarih</th>
+                            <th style="width: 60px;">Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(a => `
+                            <tr>
+                                <td>${a.materials?.name || '-'}</td>
+                                <td>${a.materials?.brand_model || '-'}</td>
+                                <td>${a.assigned_to}</td>
+                                <td>${a.target_title || '-'}</td>
+                                <td style="text-align: center;">${a.quantity}</td>
+                                <td>${new Date(a.assigned_date).toLocaleDateString('tr-TR')}</td>
+                                <td>${a.status === 'aktif' ? 'Aktif' : 'İade Edildi'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            break;
+        case 'requests':
+            tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Talep Eden</th>
+                            <th>Malzeme</th>
+                            <th style="width: 40px;">Adet</th>
+                            <th style="width: 80px;">Durum</th>
+                            <th style="width: 70px;">Tarih</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(r => `
+                            <tr>
+                                <td>${r.profiles?.full_name || '-'}</td>
+                                <td>${r.materials?.name || '-'}</td>
+                                <td style="text-align: center;">${r.quantity}</td>
+                                <td>${r.status.toUpperCase()}</td>
+                                <td>${new Date(r.created_at).toLocaleDateString('tr-TR')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            break;
+        case 'stock':
+            tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Malzeme Türü</th>
+                            <th style="width: 80px;">Çeşit Sayısı</th>
+                            <th style="width: 80px;">Toplam Stok</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(s => `
+                            <tr>
+                                <td>${s.type}</td>
+                                <td style="text-align: center;">${s.count}</td>
+                                <td style="text-align: center;">${s.quantity}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            break;
+        case 'critical':
+            tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tür</th>
+                            <th>Malzeme Adı</th>
+                            <th>Marka/Model</th>
+                            <th style="width: 80px;">Mevcut Stok</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(m => `
+                            <tr>
+                                <td>${m.type}</td>
+                                <td>${m.name}</td>
+                                <td>${m.brand_model}</td>
+                                <td style="text-align: center; font-weight: bold; color: #ef4444;">${m.quantity}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            break;
+        case 'personnel':
+            tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 150px;">Personel / Unvan</th>
+                            <th>Zimmetli Malzemeler</th>
+                            <th style="width: 40px;">Adet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(p => `
+                            <tr>
+                                <td>
+                                    <strong>${p.name}</strong><br>
+                                    ${p.title || '-'}
+                                </td>
+                                <td>
+                                    ${p.items.map(i => `${i.materials?.name} [${i.materials?.brand_model || '-'}] (${i.quantity} ad.)`).join('<br>')}
+                                </td>
+                                <td style="text-align: center;">${p.items.reduce((sum, i) => sum + i.quantity, 0)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            break;
+    }
 
     printWindow.document.write(`
         <!DOCTYPE html>
@@ -422,38 +727,56 @@ function downloadPDF(title, data, type) {
         <head>
             <title>${title}</title>
             <style>
+                @page {
+                    size: A4 portrait;
+                    margin: 1cm;
+                }
                 body {
                     font-family: Arial, sans-serif;
-                    padding: 20px;
+                    font-size: 10px;
                     color: #000;
-                    background: #fff;
+                    margin: 0;
+                    padding: 0;
                 }
-                h2 { color: #333; }
+                .pdf-header {
+                    text-align: center;
+                    margin-bottom: 20px;
+                    font-weight: bold;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 10px;
+                    font-size: 12px;
+                }
+                .pdf-report-date {
+                    text-align: right;
+                    margin-bottom: 5px;
+                    font-size: 9px;
+                }
                 table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin-top: 20px;
+                    table-layout: fixed;
                 }
                 th, td {
-                    border: 1px solid #ddd;
-                    padding: 8px;
+                    border: 1px solid #000;
+                    padding: 4px;
                     text-align: left;
+                    word-wrap: break-word;
                 }
                 th {
                     background-color: #f2f2f2;
                 }
-                .page-header button { display: none; }
-                @media print {
-                    .page-header button { display: none; }
+                tr:nth-child(even) {
+                    background-color: #fafafa;
                 }
             </style>
         </head>
         <body>
-            ${content}
+            ${pdfHeader}
+            ${tableHtml}
             <script>
                 window.onload = function() {
                     window.print();
-                    setTimeout(() => window.close(), 100);
+                    setTimeout(() => window.close(), 500);
                 };
             </script>
         </body>
