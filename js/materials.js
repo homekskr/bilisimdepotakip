@@ -572,7 +572,7 @@ async function downloadInventoryPDF() {
                 }
                 body {
                     font-family: Arial, sans-serif;
-                    font-size: 11px;
+                    font-size: 10px;
                     color: #000;
                     margin: 0;
                     padding: 0;
