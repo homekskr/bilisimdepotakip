@@ -73,6 +73,12 @@ body {
     border: 1px solid var(--glass-border);
 }
 
+.text-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
 /* ==================== Loading Screen ==================== */
 .loading-screen {
     position: fixed;

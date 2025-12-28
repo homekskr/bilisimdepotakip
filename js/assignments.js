@@ -239,8 +239,14 @@ function renderAssignmentsTable(assignments, canManage) {
 
     return assignments.map(a => `
         <tr data-id="${a.id}">
-            <td data-label="Malzeme">${a.materials?.name || (a.materials ? 'İsimsiz' : ('ID: ' + a.material_id))}</td>
-            <td data-label="Zimmetli">${a.assigned_to}</td>
+            <td data-label="Malzeme">
+                <div>${a.materials?.name || (a.materials ? 'İsimsiz' : ('ID: ' + a.material_id))}</div>
+                <div class="text-sub">${a.materials?.brand_model || ''}</div>
+            </td>
+            <td data-label="Zimmetli">
+                <div>${a.assigned_to}</div>
+                <div class="text-sub">${a.target_title || ''}</div>
+            </td>
             <td data-label="Adet"><span class="badge badge-info">${a.quantity}</span></td>
             <td data-label="Zimmet Tarihi">${new Date(a.assigned_date).toLocaleDateString('tr-TR')}</td>
             <td data-label="İade Tarihi">${a.return_date ? new Date(a.return_date).toLocaleDateString('tr-TR') : '-'}</td>

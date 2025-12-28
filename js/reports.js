@@ -201,8 +201,14 @@ function renderAssignmentsTableRows(assignments) {
     }
     return assignments.map(a => `
         <tr>
-            <td data-label="Malzeme">${a.materials?.name || 'Bilinmiyor'}</td>
-            <td data-label="Zimmetli">${a.assigned_to}</td>
+            <td data-label="Malzeme">
+                <div>${a.materials?.name || 'Bilinmiyor'}</div>
+                <div class="text-sub">${a.materials?.brand_model || ''}</div>
+            </td>
+            <td data-label="Zimmetli">
+                <div>${a.assigned_to}</div>
+                <div class="text-sub">${a.target_title || ''}</div>
+            </td>
             <td data-label="Adet">${a.quantity}</td>
             <td data-label="Zimmet Tarihi">${new Date(a.assigned_date).toLocaleDateString('tr-TR')}</td>
             <td data-label="İade Tarihi">${a.return_date ? new Date(a.return_date).toLocaleDateString('tr-TR') : '-'}</td>
@@ -276,8 +282,14 @@ function renderRequestsTableRows(requests) {
     }
     return requests.map(r => `
         <tr>
-            <td data-label="Talep Eden">${r.profiles?.full_name || 'Bilinmiyor'}</td>
-            <td data-label="Malzeme">${r.materials?.name || 'Bilinmiyor'}</td>
+            <td data-label="Talep Eden">
+                <div>${r.profiles?.full_name || 'Bilinmiyor'}</div>
+                <div class="text-sub">${r.target_title || ''}</div>
+            </td>
+            <td data-label="Malzeme">
+                <div>${r.materials?.name || 'Bilinmiyor'}</div>
+                <div class="text-sub">${r.materials?.brand_model || ''}</div>
+            </td>
             <td data-label="Adet">${r.quantity}</td>
             <td data-label="Durum">${r.status}</td>
             <td data-label="Tarih">${new Date(r.created_at).toLocaleDateString('tr-TR')}</td>

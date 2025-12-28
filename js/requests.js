@@ -289,21 +289,21 @@ function renderRequestsTable(requests, userRole) {
                 <td data-label="Talep Eden">${r.profiles?.full_name || 'Bilinmiyor'}</td>
                 <td data-label="Malzeme Türü">
                     <div style="font-weight: 500;">${r.requested_type || 'Belirtilmemiş'}</div>
-                    ${r.materials ? `<div style="font-size: 0.85rem; color: var(--text-secondary);">Seçilen: ${r.materials.name} [${r.materials.brand_model}]</div>` : '<div style="font-size: 0.8rem; color: var(--warning-color);">Ürün henüz seçilmedi</div>'}
+                    ${r.materials ? `<div class="text-sub">Seçilen: ${r.materials.name} [${r.materials.brand_model}]</div>` : '<div class="text-sub" style="color: var(--warning-color);">Ürün henüz seçilmedi</div>'}
                 </td>
                 <td data-label="Kurum/Birim">
                     <div style="font-size: 0.9rem;">${r.institution || '-'}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary);">${r.building || '-'} / ${r.unit || '-'}</div>
+                    <div class="text-sub">${r.building || '-'} / ${r.unit || '-'}</div>
                 </td>
                 <td data-label="Zimmetlenecek Kişi">
                     <div style="font-weight: 500;">${r.target_personnel || '-'}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary);">${r.target_title || '-'}</div>
+                    <div class="text-sub">${r.target_title || '-'}</div>
                 </td>
                 <td data-label="Adet"><span class="badge badge-info">${r.quantity}</span></td>
                 <td data-label="Neden" title="${r.reason}">${r.reason.length > 30 ? r.reason.substring(0, 30) + '...' : r.reason}</td>
                 <td data-label="Talep Tarihi">
                     <div style="font-size: 0.9rem;">${new Date(r.created_at).toLocaleDateString('tr-TR')}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary);">${new Date(r.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div class="text-sub">${new Date(r.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
                 </td>
                 <td data-label="Yön. Onayı">${getApprovalBadge(r.manager_approval, r.manager_approved_at)}</td>
                 <td data-label="Bşk. Onayı">${getApprovalBadge(r.president_approval, r.president_approved_at)}</td>
@@ -341,7 +341,7 @@ function getApprovalBadge(approval, approvalDate) {
     let dateHtml = '';
     if (approvalDate) {
         const date = new Date(approvalDate);
-        dateHtml = `<div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem;">${date.toLocaleDateString('tr-TR')} ${date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>`;
+        dateHtml = `<div class="text-sub" style="margin-top: 0.25rem;">${date.toLocaleDateString('tr-TR')} ${date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>`;
     }
 
     if (approval === 'onaylandi') return `<div><span class="badge badge-success">Onaylandı</span>${dateHtml}</div>`;
