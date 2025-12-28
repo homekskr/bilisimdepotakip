@@ -245,8 +245,12 @@ function renderMaterialsTable(materials, canManage) {
         return '<tr><td colspan="7">Henüz malzeme eklenmemiş</td></tr>';
     }
 
-    return materials.map(m => `
-        <tr data-id="${m.id}">
+    return materials.map(m => {
+        const isLowStock = m.quantity <= 3;
+        const rowStyle = isLowStock ? 'style="background: rgba(239, 68, 68, 0.15);"' : '';
+
+        return `
+        <tr data-id="${m.id}" ${rowStyle}>
             <td data-label="Durum"><span class="badge ${m.condition === 'YENİ' ? 'badge-success' : 'badge-warning'}">${m.condition}</span></td>
             <td data-label="Tür">${m.type}</td>
             <td data-label="Malzeme Adı">${m.name}</td>
@@ -274,7 +278,8 @@ function renderMaterialsTable(materials, canManage) {
                 </td>
             ` : ''}
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Search materials

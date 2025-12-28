@@ -71,6 +71,7 @@ async function render() {
                             <th>Zimmetlenecek Kişi</th>
                             <th>Adet</th>
                             <th>Neden</th>
+                            <th>Talep Tarihi</th>
                             <th>Yönetici Onayı</th>
                             <th>Başkan Onayı</th>
                             <th>Durum</th>
@@ -198,6 +199,13 @@ async function render() {
                                 Sadece stokta bulunan ve talep edilen türe uygun malzemeler listelenir.
                             </p>
                         </div>
+                        <div class="form-group">
+                            <label for="approval-quantity">Talep Edilen Adet *</label>
+                            <input type="number" id="approval-quantity" min="1" required>
+                            <p class="form-help" style="font-size: 0.8rem; margin-top: 0.25rem; color: var(--text-secondary);">
+                                Gerekirse adet sayısını değiştirebilirsiniz.
+                            </p>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -293,8 +301,12 @@ function renderRequestsTable(requests, userRole) {
                 </td>
                 <td data-label="Adet"><span class="badge badge-info">${r.quantity}</span></td>
                 <td data-label="Neden" title="${r.reason}">${r.reason.length > 30 ? r.reason.substring(0, 30) + '...' : r.reason}</td>
-                <td data-label="Yön. Onayı">${getApprovalBadge(r.manager_approval)}</td>
-                <td data-label="Bşk. Onayı">${getApprovalBadge(r.president_approval)}</td>
+                <td data-label="Talep Tarihi">
+                    <div style="font-size: 0.9rem;">${new Date(r.created_at).toLocaleDateString('tr-TR')}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">${new Date(r.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
+                </td>
+                <td data-label="Yön. Onayı">${getApprovalBadge(r.manager_approval, r.manager_approved_at)}</td>
+                <td data-label="Bşk. Onayı">${getApprovalBadge(r.president_approval, r.president_approved_at)}</td>
                 <td data-label="Durum">${getStatusBadge(r.status)}</td>
                 <td data-label="İşlemler">
                     <div class="table-actions">
@@ -312,7 +324,7 @@ function renderRequestsTable(requests, userRole) {
                         ${r.status === 'tamamlandi' ? `
                             <button class="btn btn-sm btn-info view-assignment-details-btn" data-id="${r.id}">Zimmetlendi</button>
                         ` : ''}
-                        ${r.status === 'beklemede' && userRole === 'personel' && r.requested_by === window.currentUser?.id ? `
+                        ${r.status === 'beklemede' && !r.manager_approval && !r.president_approval && userRole === 'personel' && r.requested_by === window.currentUser?.id ? `
                             <button class="btn btn-sm btn-danger cancel-request-btn" data-id="${r.id}">İptal</button>
                         ` : ''}
                     </div>
@@ -323,10 +335,17 @@ function renderRequestsTable(requests, userRole) {
 }
 
 // Get approval badge
-function getApprovalBadge(approval) {
+function getApprovalBadge(approval, approvalDate) {
     if (!approval) return '<span class="badge badge-warning">Bekliyor</span>';
-    if (approval === 'onaylandi') return '<span class="badge badge-success">Onaylandı</span>';
-    if (approval === 'reddedildi') return '<span class="badge badge-danger">Reddedildi</span>';
+
+    let dateHtml = '';
+    if (approvalDate) {
+        const date = new Date(approvalDate);
+        dateHtml = `<div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem;">${date.toLocaleDateString('tr-TR')} ${date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>`;
+    }
+
+    if (approval === 'onaylandi') return `<div><span class="badge badge-success">Onaylandı</span>${dateHtml}</div>`;
+    if (approval === 'reddedildi') return `<div><span class="badge badge-danger">Reddedildi</span>${dateHtml}</div>`;
     return '-';
 }
 
@@ -370,6 +389,9 @@ function filterRequests(query) {
             r.reason.toLowerCase().includes(query.toLowerCase())
         );
     }
+
+    // Sort by created_at descending (newest first)
+    filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     const userRole = window.currentProfile?.role;
     const tbody = document.getElementById('requests-tbody');
@@ -445,16 +467,20 @@ function closeRequestModal() {
 async function openApprovalModal(requestId, requestedType, role) {
     const modal = document.getElementById('approval-modal');
     const select = document.getElementById('approval-material-select');
+    const quantityInput = document.getElementById('approval-quantity');
     const info = document.getElementById('approval-info');
 
     document.getElementById('approval-request-id').value = requestId;
     document.getElementById('approval-role').value = role;
 
-    info.textContent = `Talep Edilen Tür: ${requestedType}`;
-
-    // Get current selection if any
+    // Get current request data
     const req = window.requestsData.find(r => r.id === requestId);
     const existingId = req?.material_id;
+
+    // Set current quantity
+    quantityInput.value = req?.quantity || 1;
+
+    info.textContent = `Talep Edilen Tür: ${requestedType}`;
 
     // Fetch matching materials
     const { data: materials, error } = await supabase
@@ -482,6 +508,7 @@ function closeApprovalModal() {
 async function confirmApproval() {
     const id = document.getElementById('approval-request-id').value;
     const materialId = document.getElementById('approval-material-select').value;
+    const quantity = parseInt(document.getElementById('approval-quantity').value);
     const role = document.getElementById('approval-role').value;
 
     if (!materialId) {
@@ -489,10 +516,15 @@ async function confirmApproval() {
         return;
     }
 
+    if (!quantity || quantity < 1) {
+        showToast('Lütfen geçerli bir adet girin', 'warning');
+        return;
+    }
+
     if (role === 'manager') {
-        await processManagerApproval(id, true, materialId);
+        await processManagerApproval(id, true, materialId, quantity);
     } else if (role === 'president') {
-        await processPresidentApproval(id, true, materialId);
+        await processPresidentApproval(id, true, materialId, quantity);
     }
 
     closeApprovalModal();
@@ -556,7 +588,7 @@ async function approveAsManager(id, approved, requestedType = null) {
     openApprovalModal(id, requestedType, 'manager');
 }
 
-async function processManagerApproval(id, approved, materialId = null) {
+async function processManagerApproval(id, approved, materialId = null, quantity = null) {
     try {
         const updateData = {
             manager_approval: approved ? 'onaylandi' : 'reddedildi',
@@ -568,6 +600,11 @@ async function processManagerApproval(id, approved, materialId = null) {
         if (approved && materialId) {
             updateData.material_id = materialId;
             updateData.status = 'yonetici_onayi';
+        }
+
+        // Update quantity if provided
+        if (approved && quantity !== null) {
+            updateData.quantity = quantity;
         }
 
         const { error } = await supabase
@@ -597,7 +634,7 @@ async function approveAsPresident(id, approved, requestedType = null) {
     openApprovalModal(id, requestedType, 'president');
 }
 
-async function processPresidentApproval(id, approved, materialId = null) {
+async function processPresidentApproval(id, approved, materialId = null, quantity = null) {
     try {
         const updateData = {
             president_approval: approved ? 'onaylandi' : 'reddedildi',
@@ -608,6 +645,11 @@ async function processPresidentApproval(id, approved, materialId = null) {
 
         if (approved && materialId) {
             updateData.material_id = materialId;
+        }
+
+        // Update quantity if provided
+        if (approved && quantity !== null) {
+            updateData.quantity = quantity;
         }
 
         const { error } = await supabase
@@ -670,6 +712,8 @@ async function cancelRequest(id) {
             .eq('id', id);
 
         if (error) throw error;
+
+        window.requestsData = null; // Invalidate cache
         showToast('Talep başarıyla iptal edildi', 'success');
         render(); // Reload
 

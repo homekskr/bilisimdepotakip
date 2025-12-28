@@ -228,13 +228,18 @@ function renderSummaryTable() {
     const tbody = document.getElementById('summary-table-body');
     if (!tbody) return;
 
-    tbody.innerHTML = summaryList.map(s => `
-        <tr>
+    tbody.innerHTML = summaryList.map(s => {
+        const isLowStock = s.quantity <= 3;
+        const rowStyle = isLowStock ? 'style="background: rgba(239, 68, 68, 0.15);"' : '';
+
+        return `
+        <tr ${rowStyle}>
             <td data-label="MALZEME TÜRÜ">${s.type}</td>
             <td data-label="MALZEME DURUMU"><span class="badge ${s.condition === 'YENİ' ? 'badge-success' : 'badge-warning'}">${s.condition}</span></td>
             <td data-label="STOK ADEDİ"><span class="badge badge-info">${s.quantity}</span></td>
         </tr>
-    `).join('') || '<tr><td colspan="3">Veri bulunamadı</td></tr>';
+    `;
+    }).join('') || '<tr><td colspan="3">Veri bulunamadı</td></tr>';
 }
 
 // Dashboard Page

@@ -8,26 +8,22 @@ const pageContent = document.getElementById('page-content');
 async function render(forceRefresh = false) {
     const canManage = await checkUserRole(['admin', 'depo']);
 
-    // Fetch assignments with related data (using cache)
-    if (!window.assignmentsData || forceRefresh) {
-        const { data: assignments, error } = await supabase
-            .from('assignments')
-            .select(`
-                *,
-                materials (name, type, brand_model),
-                profiles!assignments_assigned_by_fkey (full_name),
-                requests (id)
-            `)
-            .order('assigned_date', { ascending: false });
+    // Always fetch fresh data to ensure joins work properly
+    const { data: assignments, error } = await supabase
+        .from('assignments')
+        .select(`
+            *,
+            materials (name, type, brand_model),
+            profiles!assignments_assigned_by_fkey (full_name),
+            requests (id)
+        `)
+        .order('assigned_date', { ascending: false });
 
-        if (error) {
-            pageContent.innerHTML = `<div class="error">Hata: ${error.message}</div>`;
-            return;
-        }
-        window.assignmentsData = assignments;
+    if (error) {
+        console.error('Assignments fetch error:', error);
+        pageContent.innerHTML = `<div class="error">Hata: ${error.message}</div>`;
+        return;
     }
-
-    const assignments = window.assignmentsData;
 
     pageContent.innerHTML = `
         <div class="page-header">
@@ -46,6 +42,12 @@ async function render(forceRefresh = false) {
                     </svg>
                     <input type="text" id="search-assignments" placeholder="Malzeme veya kişi ara..." class="search-input">
                 </div>
+                <select id="sort-assignments" class="btn btn-sm btn-secondary" style="background: var(--bg-secondary); text-align: left; min-width: 180px; height: 38px;">
+                    <option value="date-desc">Tarihe Göre (İlk Önce Yeni)</option>
+                    <option value="date-asc">Tarihe Göre (İlk Önce Eski)</option>
+                    <option value="material">Malzemeye Göre (A-Z)</option>
+                    <option value="person">Zimmetliye Göre (A-Z)</option>
+                </select>
                 <div>
                     <button class="btn btn-sm ${currentFilter === 'all' ? 'btn-primary' : 'btn-secondary'}" data-filter="all">Tümü</button>
                     <button class="btn btn-sm ${currentFilter === 'aktif' ? 'btn-primary' : 'btn-secondary'}" data-filter="aktif">Aktif</button>
@@ -156,6 +158,26 @@ async function render(forceRefresh = false) {
                 </div>
             </div>
         </div>
+        
+        <!-- Assignment Detail Modal -->
+        <div id="assignment-detail-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Zimmet Detayları</h3>
+                    <button class="modal-close" id="close-assignment-detail-modal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body" id="assignment-detail-body">
+                    <!-- Detaylar buraya gelecek -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="close-assignment-detail-btn">Kapat</button>
+                </div>
+            </div>
+        </div>
     `;
 
     // Store assignments data
@@ -182,9 +204,18 @@ async function render(forceRefresh = false) {
         });
     });
 
+    document.getElementById('sort-assignments')?.addEventListener('change', (e) => {
+        currentSort = e.target.value;
+        filterAssignments(document.getElementById('search-assignments').value);
+    });
+
     document.getElementById('close-assignment-modal')?.addEventListener('click', closeAssignmentModal);
     document.getElementById('cancel-assignment-btn')?.addEventListener('click', closeAssignmentModal);
     document.getElementById('save-assignment-btn')?.addEventListener('click', saveAssignment);
+
+    // Assignment detail modal events
+    document.getElementById('close-assignment-detail-modal')?.addEventListener('click', () => document.getElementById('assignment-detail-modal').classList.add('hidden'));
+    document.getElementById('close-assignment-detail-btn')?.addEventListener('click', () => document.getElementById('assignment-detail-modal').classList.add('hidden'));
 
     // Check for prefill data (Auto-open modal)
     if (canManage && window.assignmentPrefillData) {
@@ -198,6 +229,7 @@ async function render(forceRefresh = false) {
 }
 
 let currentFilter = 'all';
+let currentSort = 'date-desc';
 
 // Render assignments table
 function renderAssignmentsTable(assignments, canManage) {
@@ -216,10 +248,17 @@ function renderAssignmentsTable(assignments, canManage) {
             ${canManage ? `
                 <td data-label="İşlemler">
                     <div class="table-actions">
+                        <button class="btn btn-sm btn-info view-assignment-detail-btn" data-id="${a.id}">Detay</button>
                         ${a.status === 'aktif' ? `<button class="btn btn-sm btn-warning return-assignment-btn" data-id="${a.id}">İade Al</button>` : ''}
                     </div>
                 </td>
-            ` : ''}
+            ` : `
+                <td data-label="İşlemler">
+                    <div class="table-actions">
+                        <button class="btn btn-sm btn-info view-assignment-detail-btn" data-id="${a.id}">Detay</button>
+                    </div>
+                </td>
+            `}
         </tr>
     `).join('');
 }
@@ -240,6 +279,24 @@ function filterAssignments(query) {
             a.assigned_to.toLowerCase().includes(query.toLowerCase())
         );
     }
+
+    // Sort filtered results
+    filtered.sort((a, b) => {
+        switch (currentSort) {
+            case 'date-desc':
+                return new Date(b.assigned_date) - new Date(a.assigned_date);
+            case 'date-asc':
+                return new Date(a.assigned_date) - new Date(b.assigned_date);
+            case 'material':
+                const nameA = a.materials?.name || '';
+                const nameB = b.materials?.name || '';
+                return nameA.localeCompare(nameB, 'tr');
+            case 'person':
+                return a.assigned_to.localeCompare(b.assigned_to, 'tr');
+            default:
+                return 0;
+        }
+    });
 
     const canManage = ['admin', 'depo'].includes(window.currentProfile?.role);
     const tbody = document.getElementById('assignments-tbody');
@@ -421,11 +478,104 @@ async function returnAssignment(id) {
     }
 }
 
+// View assignment details
+async function viewAssignmentDetails(assignmentId) {
+    const modal = document.getElementById('assignment-detail-modal');
+    const body = document.getElementById('assignment-detail-body');
+
+    body.innerHTML = '<div class="loading-spinner">Yükleniyor...</div>';
+    modal.classList.remove('hidden');
+
+    try {
+        const { data: assignment, error } = await supabase
+            .from('assignments')
+            .select(`
+                *,
+                materials (name, brand_model, barcode, type, condition),
+                profiles!assignments_assigned_by_fkey (full_name)
+            `)
+            .eq('id', assignmentId)
+            .single();
+
+        if (error) throw error;
+
+        if (!assignment) {
+            body.innerHTML = '<div class="alert alert-warning">Zimmet kaydı bulunamadı.</div>';
+            return;
+        }
+
+        body.innerHTML = `
+            <div class="detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">MALZEME</label>
+                    <div style="font-weight: 500;">${assignment.materials?.name || 'Bilinmiyor'}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">${assignment.materials?.brand_model || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">TÜR</label>
+                    <div style="font-weight: 500;">${assignment.materials?.type || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">BARKOD</label>
+                    <div style="font-weight: 500;">${assignment.materials?.barcode || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">DURUM</label>
+                    <div style="font-weight: 500;">${assignment.materials?.condition || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">ZİMMETLİ KİŞİ</label>
+                    <div style="font-weight: 500;">${assignment.target_personnel || assignment.assigned_to}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">${assignment.target_title || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">KURUM</label>
+                    <div style="font-weight: 500;">${assignment.institution || '-'}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">${assignment.building || '-'} / ${assignment.unit || '-'}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">TESLİM EDEN</label>
+                    <div style="font-weight: 500;">${assignment.profiles?.full_name || 'Bilinmiyor'}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">ZİMMET TARİHİ</label>
+                    <div style="font-weight: 500;">${new Date(assignment.assigned_date).toLocaleDateString('tr-TR')}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">${new Date(assignment.assigned_date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">ADET</label>
+                    <div style="font-weight: 500;">${assignment.quantity}</div>
+                </div>
+                <div class="detail-item">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">İADE TARİHİ</label>
+                    <div style="font-weight: 500;">${assignment.return_date ? new Date(assignment.return_date).toLocaleDateString('tr-TR') : '-'}</div>
+                    ${assignment.return_date ? `<div style="font-size: 0.85rem; color: var(--text-secondary);">${new Date(assignment.return_date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>` : ''}
+                </div>
+                <div class="detail-item" style="grid-column: span 2;">
+                    <label style="font-weight: bold; color: var(--text-secondary); display: block; font-size: 0.8rem;">DURUM</label>
+                    <span class="badge ${assignment.status === 'aktif' ? 'badge-success' : 'badge-warning'}">
+                        ${assignment.status === 'aktif' ? 'Zimmet Aktif' : 'İade Alındı'}
+                    </span>
+                </div>
+            </div>
+        `;
+
+    } catch (error) {
+        body.innerHTML = `<div class="error">Detaylar yüklenirken hata oluştu: ${error.message}</div>`;
+    }
+}
+
 // Attach event listeners
 function attachTableEventListeners() {
     document.querySelectorAll('.return-assignment-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             returnAssignment(btn.dataset.id);
+        });
+    });
+
+    document.querySelectorAll('.view-assignment-detail-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            viewAssignmentDetails(btn.dataset.id);
         });
     });
 }

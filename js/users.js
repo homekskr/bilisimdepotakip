@@ -83,15 +83,15 @@ async function render() {
                         </div>
                         <div class="form-group">
                             <label for="modal-user-username">Kullanıcı Adı *</label>
-                            <input type="text" id="modal-user-username" required>
+                            <input type="text" id="modal-user-username" required data-no-uppercase="true" style="text-transform: lowercase;">
                         </div>
                         <div class="form-group" id="email-group">
                             <label for="modal-user-email">E-posta *</label>
-                            <input type="email" id="modal-user-email" required>
+                            <input type="email" id="modal-user-email" required style="text-transform: lowercase;">
                         </div>
                         <div class="form-group" id="password-group">
                             <label for="modal-user-password">Şifre *</label>
-                            <input type="password" id="modal-user-password" required minlength="6" placeholder="En az 6 karakter">
+                            <input type="password" id="modal-user-password" required minlength="6" placeholder="En az 6 karakter" data-no-uppercase="true">
                         </div>
                         <div class="form-group">
                             <label for="modal-user-role">Rol *</label>
@@ -112,6 +112,8 @@ async function render() {
                 </div>
             </div>
         </div>
+        
+
     `;
 
     // Event listeners
@@ -125,6 +127,8 @@ async function render() {
     document.getElementById('cancel-user-btn')?.addEventListener('click', closeUserModal);
     document.getElementById('save-user-btn')?.addEventListener('click', saveUser);
 
+
+
     attachTableEventListeners();
 }
 
@@ -137,7 +141,7 @@ function renderUsersTable(users) {
     return users.map(u => `
         <tr data-id="${u.id}">
             <td data-label="Ad Soyad">${u.full_name}</td>
-            <td data-label="Kullanıcı Adı">${u.username}</td>
+            <td data-label="Kullanıcı Adı">${u.username.toLowerCase()}</td>
             <td data-label="Rol"><span class="badge badge-info">${getRoleDisplayName(u.role)}</span></td>
             <td data-label="Kayıt Tarihi">${new Date(u.created_at).toLocaleDateString('tr-TR')}</td>
             <td data-label="İşlemler">
@@ -148,6 +152,7 @@ function renderUsersTable(users) {
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                     </button>
+
                     <button class="btn btn-sm btn-danger delete-user-btn" data-id="${u.id}" ${u.id === window.currentUser?.id ? 'disabled' : ''} title="${u.id === window.currentUser?.id ? 'Kendinizi Silemezsiniz' : 'Sil'}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="3 6 5 6 21 6"></polyline>
@@ -200,13 +205,28 @@ async function openUserModal(userId = null) {
     if (userId) {
         title.textContent = 'Kullanıcı Düzenle';
         document.getElementById('edit-user-id').value = userId;
-        if (emailGroup) emailGroup.style.display = 'none';
+        // Show email as readonly in edit mode
+        if (emailGroup) {
+            emailGroup.style.display = 'block';
+            const emailInput = document.getElementById('modal-user-email');
+            if (emailInput) {
+                emailInput.readOnly = true;
+                emailInput.required = false;
+            }
+        }
         if (passwordGroup) passwordGroup.style.display = 'none';
         loadUserData(userId);
     } else {
         title.textContent = 'Yeni Kullanıcı';
         document.getElementById('edit-user-id').value = '';
-        if (emailGroup) emailGroup.style.display = 'block';
+        if (emailGroup) {
+            emailGroup.style.display = 'block';
+            const emailInput = document.getElementById('modal-user-email');
+            if (emailInput) {
+                emailInput.readOnly = false;
+                emailInput.required = true;
+            }
+        }
         if (passwordGroup) passwordGroup.style.display = 'block';
     }
 
@@ -229,6 +249,14 @@ async function loadUserData(userId) {
     document.getElementById('modal-user-name').value = data.full_name;
     document.getElementById('modal-user-username').value = data.username;
     document.getElementById('modal-user-role').value = data.role;
+
+    // Get email from auth.users (using admin API)
+    // Since we can't directly access auth.users, we'll use username as email
+    // In most cases, username IS the email
+    const emailInput = document.getElementById('modal-user-email');
+    if (emailInput) {
+        emailInput.value = data.username; // Username is the email
+    }
 }
 
 // Close user modal
@@ -244,11 +272,20 @@ async function saveUser() {
     const passwordInput = document.getElementById('modal-user-password');
     const roleInput = document.getElementById('modal-user-role');
 
+    console.log('Input elements:', {
+        nameInput: nameInput?.value,
+        usernameInput: usernameInput?.value,
+        emailInput: emailInput?.value,
+        roleInput: roleInput?.value
+    });
+
     const name = nameInput?.value?.trim();
-    const username = usernameInput?.value?.trim();
-    const email = emailInput?.value?.trim();
+    const username = usernameInput?.value?.trim().toLowerCase();
+    const email = emailInput?.value?.trim().toLowerCase();
     const password = passwordInput?.value?.trim();
     const role = roleInput?.value;
+
+    console.log('Processed values:', { name, username, email, role });
 
     const editId = document.getElementById('edit-user-id').value;
 
@@ -267,37 +304,59 @@ async function saveUser() {
     }
 
     try {
+        const saveBtn = document.getElementById('save-user-btn');
+
         if (editId) {
             // Update profile
+            console.log('Updating user:', { editId, name, username, role });
+
             const { error: profileError } = await supabase
                 .from('profiles')
                 .update({
                     full_name: name,
-                    username: username,
+                    username: username.toLowerCase(),
                     role: role
                 })
                 .eq('id', editId);
 
-            if (profileError) throw profileError;
+            if (profileError) {
+                console.error('Profile update error:', profileError);
+                throw profileError;
+            }
 
             showToast('Kullanıcı güncellendi!', 'success');
         } else {
-            // Create mode
+            // Create mode - Disable button to prevent rapid clicks
+            saveBtn.disabled = true;
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Oluşturuluyor...';
+
             // 1. Create auth user using signUp (works with anon key)
             const { data: authData, error: authError } = await supabase.auth.signUp({
-                email,
+                email: email.toLowerCase(),
                 password,
                 options: {
                     data: {
                         full_name: name,
-                        username: username
+                        username: username.toLowerCase()
                     }
                 }
             });
 
-            if (authError) throw authError;
+            if (authError) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+
+                // Better error message for rate limiting
+                if (authError.message.includes('For security purposes')) {
+                    throw new Error('Çok hızlı kullanıcı oluşturma denemesi. Lütfen 20 saniye bekleyip tekrar deneyin.');
+                }
+                throw authError;
+            }
 
             if (!authData.user) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
                 throw new Error('Kullanıcı oluşturulamadı');
             }
 
@@ -306,7 +365,7 @@ async function saveUser() {
                 .from('profiles')
                 .insert([{
                     id: authData.user.id,
-                    username,
+                    username: username.toLowerCase(),
                     full_name: name,
                     role
                 }]);
@@ -369,6 +428,8 @@ function attachTableEventListeners() {
         });
     });
 
+
+
     document.querySelectorAll('.delete-user-btn').forEach(btn => {
         if (!btn.disabled) {
             btn.addEventListener('click', () => {
@@ -377,6 +438,8 @@ function attachTableEventListeners() {
         }
     });
 }
+
+
 
 // Export module
 window.usersModule = { render };
