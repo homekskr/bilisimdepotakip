@@ -159,10 +159,8 @@ async function handleLogout(e) {
     }
 }
 
-// Attach logout to all logout buttons
-document.querySelectorAll('#logout-btn, #logout-btn-mobile, #logout-btn-desktop').forEach(btn => {
-    btn.addEventListener('click', handleLogout);
-});
+// Attach logout to side-bar logout button
+document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
 // Notification Toggle
 document.getElementById('notification-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
