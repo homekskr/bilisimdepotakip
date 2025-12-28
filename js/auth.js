@@ -96,7 +96,7 @@ function getRoleDisplayName(role) {
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('login-email').value;
+        const email = document.getElementById('login-email').value.trim().toLowerCase();
         const password = document.getElementById('login-password').value;
 
         if (loginError) loginError.classList.add('hidden');
@@ -135,27 +135,34 @@ if (togglePasswordBtn && loginPasswordInput) {
     });
 }
 
-// Logout
-const logoutBtn = document.getElementById('logout-btn');
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const confirmed = await showConfirm(
-            'Çıkış Yapılsın mı?',
-            'Sistemden çıkış yapmak istediğinizden emin misiniz?',
-            'Evet, Çıkış Yap'
-        );
+// Logout Handler
+async function handleLogout(e) {
+    if (e) e.preventDefault();
+    console.log('Logout requested');
 
-        if (confirmed) {
-            try {
-                await supabase.auth.signOut();
-            } catch (error) {
-                console.error('Logout error:', error);
-                showToast('Çıkış yapılırken bir hata oluştu.', 'error');
-            }
+    const confirmed = await showConfirm(
+        'Çıkış Yapılsın mı?',
+        'Sistemden çıkış yapmak istediğinizden emin misiniz?',
+        'Evet, Çıkış Yap'
+    );
+
+    if (confirmed) {
+        try {
+            console.log('Proceeding with signOut...');
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            console.log('SignOut successful');
+        } catch (error) {
+            console.error('Logout error:', error);
+            showToast('Çıkış yapılırken bir hata oluştu: ' + error.message, 'error');
         }
-    });
+    }
 }
+
+// Attach logout to all logout buttons
+document.querySelectorAll('#logout-btn, #logout-btn-mobile, #logout-btn-desktop').forEach(btn => {
+    btn.addEventListener('click', handleLogout);
+});
 // Notification Toggle
 document.getElementById('notification-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
