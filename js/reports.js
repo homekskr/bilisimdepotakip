@@ -107,7 +107,7 @@ async function generateInventoryReport() {
                         <th>Tür</th>
                         <th>Marka/Model</th>
                         <th>Adet</th>
-                        <th>Barkod</th>
+                        <th>Eklenme Tarihi</th>
                     </tr>
                 </thead>
                 <tbody id="report-table-body">
@@ -132,7 +132,7 @@ function renderInventoryTableRows(materials) {
             <td data-label="Tür">${m.type}</td>
             <td data-label="Marka/Model">${m.brand_model}</td>
             <td data-label="Adet">${m.quantity}</td>
-            <td data-label="Barkod">${m.barcode || '-'}</td>
+            <td data-label="Eklenme Tarihi">${new Date(m.created_at).toLocaleDateString('tr-TR')}</td>
         </tr>
     `).join('');
 }
