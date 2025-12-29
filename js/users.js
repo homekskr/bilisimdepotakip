@@ -1,6 +1,7 @@
 // Users Management Module (Admin Only)
 import { supabase, checkUserRole } from './supabase-client.js';
 import { showToast, showConfirm } from './ui.js';
+import { escapeHTML } from './utils/security.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -140,9 +141,9 @@ function renderUsersTable(users) {
 
     return users.map(u => `
         <tr data-id="${u.id}">
-            <td data-label="Ad Soyad">${u.full_name}</td>
-            <td data-label="Kullanıcı Adı">${u.username.toLowerCase()}</td>
-            <td data-label="Rol"><span class="badge badge-info">${getRoleDisplayName(u.role)}</span></td>
+            <td data-label="Ad Soyad">${escapeHTML(u.full_name)}</td>
+            <td data-label="Kullanıcı Adı">${escapeHTML(u.username.toLowerCase())}</td>
+            <td data-label="Rol"><span class="badge badge-info">${escapeHTML(getRoleDisplayName(u.role))}</span></td>
             <td data-label="Kayıt Tarihi">${new Date(u.created_at).toLocaleDateString('tr-TR')}</td>
             <td data-label="İşlemler">
                 <div class="table-actions">

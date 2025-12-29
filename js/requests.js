@@ -2,6 +2,7 @@
 import { supabase, checkUserRole } from './supabase-client.js';
 import { showToast, showConfirm } from './ui.js';
 import { exportToPDF, exportToExcel } from './utils/export-logic.js';
+import { escapeHTML } from './utils/security.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -297,21 +298,21 @@ function renderRequestsTable(requests, userRole) {
 
         return `
             <tr data-id="${r.id}">
-                <td data-label="Talep Eden">${r.profiles?.full_name || 'Bilinmiyor'}</td>
+                <td data-label="Talep Eden">${escapeHTML(r.profiles?.full_name || 'Bilinmiyor')}</td>
                 <td data-label="Malzeme Türü">
-                    <div style="font-weight: 500;">${r.requested_type || 'Belirtilmemiş'}</div>
-                    ${r.materials ? `<div class="text-sub">Seçilen: ${r.materials.name} [${r.materials.brand_model}]</div>` : '<div class="text-sub" style="color: var(--warning-color);">Ürün henüz seçilmedi</div>'}
+                    <div style="font-weight: 500;">${escapeHTML(r.requested_type || 'Belirtilmemiş')}</div>
+                    ${r.materials ? `<div class="text-sub">Seçilen: ${escapeHTML(r.materials.name)} [${escapeHTML(r.brand_model)}]</div>` : '<div class="text-sub" style="color: var(--warning-color);">Ürün henüz seçilmedi</div>'}
                 </td>
                 <td data-label="Kurum/Birim">
-                    <div style="font-size: 0.9rem;">${r.institution || '-'}</div>
-                    <div class="text-sub">${r.building || '-'} / ${r.unit || '-'}</div>
+                    <div style="font-size: 0.9rem;">${escapeHTML(r.institution || '-')}</div>
+                    <div class="text-sub">${escapeHTML(r.building || '-')} / ${escapeHTML(r.unit || '-')}</div>
                 </td>
                 <td data-label="Zimmetlenecek Kişi">
-                    <div style="font-weight: 500;">${r.target_personnel || '-'}</div>
-                    <div class="text-sub">${r.target_title || '-'}</div>
+                    <div style="font-weight: 500;">${escapeHTML(r.target_personnel || '-')}</div>
+                    <div class="text-sub">${escapeHTML(r.target_title || '-')}</div>
                 </td>
                 <td data-label="Adet"><span class="badge badge-info">${r.quantity}</span></td>
-                <td data-label="Neden" title="${r.reason}">${r.reason.length > 30 ? r.reason.substring(0, 30) + '...' : r.reason}</td>
+                <td data-label="Neden" title="${escapeHTML(r.reason)}">${r.reason.length > 30 ? escapeHTML(r.reason.substring(0, 30)) + '...' : escapeHTML(r.reason)}</td>
                 <td data-label="Talep Tarihi">
                     <div style="font-size: 0.9rem;">${new Date(r.created_at).toLocaleDateString('tr-TR')}</div>
                     <div class="text-sub">${new Date(r.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>

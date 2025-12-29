@@ -1,5 +1,6 @@
 import { supabase } from './supabase-client.js';
 import { exportToPDF, exportToExcel } from './utils/export-logic.js';
+import { escapeHTML } from './utils/security.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -167,10 +168,11 @@ function renderInventoryTableRows(materials) {
         return '<tr><td colspan="5">Veri yok</td></tr>';
     }
     return materials.map(m => `
-            <td data-label="Durum">${m.condition}</td>
-            <td data-label="Tür">${m.type}</td>
-            <td data-label="Malzeme Adı">${m.name}</td>
-            <td data-label="Marka/Model">${m.brand_model}</td>
+        <tr>
+            <td data-label="Durum">${escapeHTML(m.condition)}</td>
+            <td data-label="Tür">${escapeHTML(m.type)}</td>
+            <td data-label="Malzeme Adı">${escapeHTML(m.name)}</td>
+            <td data-label="Marka/Model">${escapeHTML(m.brand_model)}</td>
             <td data-label="Adet">${m.quantity}</td>
         </tr>
     `).join('');
@@ -269,10 +271,11 @@ function renderAssignmentsTableRows(assignments) {
         return '<tr><td colspan="6">Veri yok</td></tr>';
     }
     return assignments.map(a => `
-            <td data-label="Malzeme">${a.materials?.name || 'Bilinmiyor'}</td>
-            <td data-label="Marka/Model">${a.materials?.brand_model || '-'}</td>
-            <td data-label="Zimmetlene">${a.assigned_to}</td>
-            <td data-label="Unvan">${a.target_title || '-'}</td>
+        <tr>
+            <td data-label="Malzeme">${escapeHTML(a.materials?.name || 'Bilinmiyor')}</td>
+            <td data-label="Marka/Model">${escapeHTML(a.materials?.brand_model || '-')}</td>
+            <td data-label="Zimmetlene">${escapeHTML(a.assigned_to)}</td>
+            <td data-label="Unvan">${escapeHTML(a.target_title || '-')}</td>
             <td data-label="Adet">${a.quantity}</td>
             <td data-label="Tarih">${new Date(a.assigned_date).toLocaleDateString('tr-TR')}</td>
             <td data-label="Durum">${a.status === 'aktif' ? 'Aktif' : 'İade Edildi'}</td>
@@ -370,10 +373,11 @@ function renderRequestsTableRows(requests) {
         return '<tr><td colspan="5">Veri yok</td></tr>';
     }
     return requests.map(r => `
-            <td data-label="Talep Eden">${r.profiles?.full_name || 'Bilinmiyor'}</td>
-            <td data-label="Malzeme">${r.materials?.name || 'Bilinmiyor'}</td>
+        <tr>
+            <td data-label="Talep Eden">${escapeHTML(r.profiles?.full_name || 'Bilinmiyor')}</td>
+            <td data-label="Malzeme">${escapeHTML(r.materials?.name || 'Bilinmiyor')}</td>
             <td data-label="Adet">${r.quantity}</td>
-            <td data-label="Durum">${r.status.toUpperCase()}</td>
+            <td data-label="Durum">${escapeHTML(r.status.toUpperCase())}</td>
             <td data-label="Talep Tarihi">${new Date(r.created_at).toLocaleDateString('tr-TR')}</td>
         </tr>
     `).join('');
@@ -461,7 +465,7 @@ function renderStockTableRows(stockData) {
     }
     return stockData.map(data => `
         <tr>
-            <td data-label="Malzeme Türü">${data.type}</td>
+            <td data-label="Malzeme Türü">${escapeHTML(data.type)}</td>
             <td data-label="Çeşit Sayısı">${data.count}</td>
             <td data-label="Toplam Adet">${data.quantity}</td>
         </tr>
@@ -662,11 +666,11 @@ async function generatePersonnelReport() {
                     ${personnelData.map(p => `
                         <tr>
                             <td>
-                                <strong>${p.name}</strong><br>
-                                <small>${p.title || '-'}</small>
+                                <strong>${escapeHTML(p.name)}</strong><br>
+                                <small>${escapeHTML(p.title || '-')}</small>
                             </td>
                             <td>
-                                ${p.items.map(i => `${i.materials?.name} (${i.quantity} adet)`).join(', ')}
+                                ${p.items.map(i => `${escapeHTML(i.materials?.name)} (${i.quantity} adet)`).join(', ')}
                             </td>
                             <td style="text-align: center;">${p.items.reduce((sum, i) => sum + i.quantity, 0)}</td>
                         </tr>

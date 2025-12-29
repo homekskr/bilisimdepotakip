@@ -2,6 +2,7 @@
 import { supabase, checkUserRole } from './supabase-client.js';
 import { showToast, showConfirm } from './ui.js';
 import { exportToPDF, exportToExcel } from './utils/export-logic.js';
+import { escapeHTML } from './utils/security.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -75,7 +76,7 @@ async function render() {
             <div class="table-filters" style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap; padding: 0 var(--spacing-lg) var(--spacing-md); border-bottom: 1px solid var(--glass-border);">
                  <select id="mat-filter-type" class="btn btn-sm btn-secondary" style="background: var(--bg-secondary); text-align: left; flex: 1; min-width: 150px;">
                     <option value="all">Tüm Türler</option>
-                    ${[...new Set(materials.map(m => m.type))].sort().map(t => `<option value="${t}">${t}</option>`).join('')}
+                    ${[...new Set(materials.map(m => m.type))].sort().map(t => `<option value="${escapeHTML(t)}">${escapeHTML(t)}</option>`).join('')}
                 </select>
                 <select id="mat-filter-condition" class="btn btn-sm btn-secondary" style="background: var(--bg-secondary); text-align: left;">
                     <option value="all">Tüm Durumlar</option>
@@ -264,10 +265,10 @@ function renderMaterialsTable(materials, canManage) {
 
         return `
         <tr data-id="${m.id}" ${rowStyle}>
-            <td data-label="Durum"><span class="badge ${m.condition === 'YENİ' ? 'badge-success' : 'badge-warning'}">${m.condition}</span></td>
-            <td data-label="Tür">${m.type}</td>
-            <td data-label="Malzeme Adı">${m.name}</td>
-            <td data-label="Marka/Model">${m.brand_model}</td>
+            <td data-label="Durum"><span class="badge ${m.condition === 'YENİ' ? 'badge-success' : 'badge-warning'}">${escapeHTML(m.condition)}</span></td>
+            <td data-label="Tür">${escapeHTML(m.type)}</td>
+            <td data-label="Malzeme Adı">${escapeHTML(m.name)}</td>
+            <td data-label="Marka/Model">${escapeHTML(m.brand_model)}</td>
             <td data-label="Adet"><span class="badge ${m.quantity > 0 ? 'badge-success' : 'badge-danger'}">${m.quantity}</span></td>
             <td data-label="Eklenme Tarihi">${new Date(m.created_at).toLocaleDateString('tr-TR')}</td>
             ${canManage ? `

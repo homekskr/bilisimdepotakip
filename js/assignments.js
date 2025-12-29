@@ -2,6 +2,7 @@
 import { supabase, checkUserRole } from './supabase-client.js';
 import { showToast, showConfirm } from './ui.js';
 import { exportToPDF, exportToExcel } from './utils/export-logic.js';
+import { escapeHTML } from './utils/security.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -251,12 +252,12 @@ function renderAssignmentsTable(assignments, canManage) {
     return assignments.map(a => `
         <tr data-id="${a.id}">
             <td data-label="Malzeme">
-                <div>${a.materials?.name || (a.materials ? 'İsimsiz' : ('ID: ' + a.material_id))}</div>
-                <div class="text-sub">${a.materials?.brand_model || ''}</div>
+                <div>${escapeHTML(a.materials?.name || (a.materials ? 'İsimsiz' : ('ID: ' + a.material_id)))}</div>
+                <div class="text-sub">${escapeHTML(a.materials?.brand_model || '')}</div>
             </td>
             <td data-label="Zimmetli">
-                <div>${a.assigned_to}</div>
-                <div class="text-sub">${a.target_title || ''}</div>
+                <div>${escapeHTML(a.assigned_to)}</div>
+                <div class="text-sub">${escapeHTML(a.target_title || '')}</div>
             </td>
             <td data-label="Adet"><span class="badge badge-info">${a.quantity}</span></td>
             <td data-label="Zimmet Tarihi">${new Date(a.assigned_date).toLocaleDateString('tr-TR')}</td>
