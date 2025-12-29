@@ -1,68 +1,95 @@
 -- ==========================================
--- Bilişim Depo Takip Sistemi - Güvenlik Sıkılaştırma
+-- Bilişim Depo Takip Sistemi - Güvenlik Sıkılaştırma (DÜZELTİLMİŞ)
 -- Tarih: 29.12.2025
+-- Açıklama: Infinite recursion hatasını önlemek için yardımcı fonksiyonlar eklendi.
 -- ==========================================
+
+-- 0. YARDIMCI GÜVENLİK FONKSİYONLARI (Recursion Önleyici)
+---------------------------------------------------------
+-- Bu fonksiyonlar SECURITY DEFINER olduğu için RLS'yi baypas eder ve recursion hatasını önler.
+
+CREATE OR REPLACE FUNCTION public.check_is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.check_is_authorized()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE id = auth.uid() AND role IN ('admin', 'depo', 'yonetici', 'baskan')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 1. PROFİLLER (PROFILES) - GİZLİLİK VE YETKİ KONTROLÜ
 ---------------------------------------------------------
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Profiles viewable by owner or authorized" ON public.profiles;
+DROP POLICY IF EXISTS "Profiles insertable by owner" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can update all fields" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own details but not role" ON public.profiles;
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Admins can update all profiles" ON public.profiles;
 
--- Sadece kendi profilini veya yetkili isen başkalarını gör
+-- Sadece kendi profilini veya yetkili isen başkalarını gör (FONKSİYON KULLANILDI)
 CREATE POLICY "Profiles viewable by owner or authorized" ON public.profiles
 FOR SELECT USING (
-    id = auth.uid() OR 
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'depo', 'yonetici', 'baskan'))
+    id = auth.uid() OR public.check_is_authorized()
 );
 
 -- Sadece auth.uid() ile eşleşen profil oluşturulabilir
 CREATE POLICY "Profiles insertable by owner" ON public.profiles
 FOR INSERT WITH CHECK (id = auth.uid());
 
--- Admin/Yönetici herkesi günceller, kullanıcılar sadece kendi fullName'ini günceller (Rol değiştiremez)
+-- Admin/Yönetici herkesi günceller (FONKSİYON KULLANILDI)
 CREATE POLICY "Admins can update all fields" ON public.profiles
-FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'yonetici'))
-);
+FOR UPDATE USING (public.check_is_admin());
 
 CREATE POLICY "Users can update own details but not role" ON public.profiles
 FOR UPDATE USING (id = auth.uid())
 WITH CHECK (
     id = auth.uid() AND 
-    (role = (SELECT role FROM public.profiles WHERE id = auth.uid())) -- Rolün değişmediğinden emin ol
+    (role = (SELECT role FROM public.profiles WHERE id = auth.uid()))
 );
 
 -- 2. TALEPLER (REQUESTS) - KOLON İSMİ DÜZELTME VE GÜVENLİK
 ---------------------------------------------------------
 ALTER TABLE public.requests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can see own or authorized can see all" ON public.requests;
+DROP POLICY IF EXISTS "Any authenticated can insert request" ON public.requests;
+DROP POLICY IF EXISTS "Authorized can update requests" ON public.requests;
+DROP POLICY IF EXISTS "Users can delete own pending requests" ON public.requests;
 DROP POLICY IF EXISTS "Herkes talepleri görebilir" ON public.requests;
 DROP POLICY IF EXISTS "Kullanıcılar talep oluşturabilir" ON public.requests;
 DROP POLICY IF EXISTS "Yetkililer talepleri güncelleyebilir" ON public.requests;
 DROP POLICY IF EXISTS "Kullanıcılar kendi taleplerini iptal edebilir" ON public.requests;
 
+-- (FONKSİYON KULLANILDI)
 CREATE POLICY "Users can see own or authorized can see all" ON public.requests
 FOR SELECT USING (
-    requested_by = auth.uid() OR 
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'depo', 'yonetici', 'baskan'))
+    requested_by = auth.uid() OR public.check_is_authorized()
 );
 
 CREATE POLICY "Any authenticated can insert request" ON public.requests
 FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
+-- (FONKSİYON KULLANILDI)
 CREATE POLICY "Authorized can update requests" ON public.requests
-FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'depo', 'yonetici', 'baskan'))
-);
+FOR UPDATE USING (public.check_is_authorized());
 
 CREATE POLICY "Users can delete own pending requests" ON public.requests
 FOR DELETE USING (
-    (requested_by = auth.uid() AND status = 'beklemede') OR
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    (requested_by = auth.uid() AND status = 'beklemede') OR public.check_is_admin()
 );
 
 -- 3. GÜVENLİ FONKSİYONLAR (RPC) - YETKİ KONTROLÜ EKLEME
@@ -84,11 +111,9 @@ RETURNS JSON AS $$
 DECLARE
     v_old_qty INTEGER;
     v_new_qty INTEGER;
-    v_caller_role TEXT;
 BEGIN
-    -- YETKİ KONTROLÜ: Çağıran kişi admin veya depo sorumlusu mu?
-    SELECT role INTO v_caller_role FROM public.profiles WHERE id = auth.uid();
-    IF v_caller_role NOT IN ('admin', 'depo') THEN
+    -- YETKİ KONTROLÜ (Helper Fonksiyon)
+    IF NOT public.check_is_authorized() THEN
         RETURN json_build_object('success', false, 'message', 'Yetkiniz yok');
     END IF;
 
@@ -131,11 +156,9 @@ CREATE OR REPLACE FUNCTION public.create_assignment_secure(
 RETURNS JSON AS $$
 DECLARE
     v_current_stock INTEGER;
-    v_caller_role TEXT;
 BEGIN
-    -- YETKİ KONTROLÜ
-    SELECT role INTO v_caller_role FROM public.profiles WHERE id = auth.uid();
-    IF v_caller_role NOT IN ('admin', 'depo', 'yonetici') THEN
+    -- YETKİ KONTROLÜ (Helper Fonksiyon)
+    IF NOT public.check_is_authorized() THEN
         RETURN json_build_object('success', false, 'message', 'Yetkiniz yok');
     END IF;
 
