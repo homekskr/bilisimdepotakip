@@ -107,9 +107,13 @@ async function generateInventoryReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2>Detaylı Envanter Listesi</h2>
-            <div>
-                <button class="btn btn-info" id="download-inventory-pdf" style="margin-right: 8px;">📄 PDF</button>
-                <button class="btn btn-success" id="download-inventory-excel">📊 Excel</button>
+            <div class="export-group">
+                <button class="btn-export pdf" id="download-inventory-pdf" data-tooltip="PDF Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </button>
+                <button class="btn-export excel" id="download-inventory-excel" data-tooltip="Excel Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                </button>
             </div>
         </div>
         <p><strong>Toplam Malzeme Türü:</strong> ${totalItems}</p>
@@ -200,9 +204,13 @@ async function generateAssignmentsReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2>Giriş/Çıkış ve Zimmet Raporu</h2>
-            <div>
-                <button class="btn btn-info" id="download-assignments-pdf" style="margin-right: 8px;">📄 PDF</button>
-                <button class="btn btn-success" id="download-assignments-excel">📊 Excel</button>
+            <div class="export-group">
+                <button class="btn-export pdf" id="download-assignments-pdf" data-tooltip="PDF Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </button>
+                <button class="btn-export excel" id="download-assignments-excel" data-tooltip="Excel Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                </button>
             </div>
         </div>
         <p><strong>Aktif Zimmetler:</strong> ${activeCount}</p>
@@ -301,9 +309,13 @@ async function generateRequestsReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2>Talep ve Onay Geçmişi Raporu</h2>
-            <div>
-                <button class="btn btn-info" id="download-requests-pdf" style="margin-right: 8px;">📄 PDF</button>
-                <button class="btn btn-success" id="download-requests-excel">📊 Excel</button>
+            <div class="export-group">
+                <button class="btn-export pdf" id="download-requests-pdf" data-tooltip="PDF Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </button>
+                <button class="btn-export excel" id="download-requests-excel" data-tooltip="Excel Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                </button>
             </div>
         </div>
         <p><strong>Bekleyen:</strong> ${pending}</p>
@@ -398,9 +410,13 @@ async function generateStockReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2>Tür Bazlı Stok Özeti</h2>
-            <div>
-                <button class="btn btn-info" id="download-stock-pdf" style="margin-right: 8px;">📄 PDF</button>
-                <button class="btn btn-success" id="download-stock-excel">📊 Excel</button>
+            <div class="export-group">
+                <button class="btn-export pdf" id="download-stock-pdf" data-tooltip="PDF Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </button>
+                <button class="btn-export excel" id="download-stock-excel" data-tooltip="Excel Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                </button>
             </div>
         </div>
         <br>
@@ -533,9 +549,13 @@ async function generateCriticalStockReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2 style="color: var(--danger);">⚠️ Kritik Stok Raporu (≤ 2 Adet)</h2>
-            <div>
-                <button class="btn btn-info" id="download-critical-pdf" style="margin-right: 8px;">📄 PDF</button>
-                <button class="btn btn-success" id="download-critical-excel">📊 Excel</button>
+            <div class="export-group">
+                <button class="btn-export pdf" id="download-critical-pdf" data-tooltip="PDF Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </button>
+                <button class="btn-export excel" id="download-critical-excel" data-tooltip="Excel Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                </button>
             </div>
         </div>
         <p>Sistemde stok miktarı kritik seviyeye ulaşmış <strong>${materials?.length || 0}</strong> farklı malzeme türü bulunmaktadır.</p>
@@ -618,9 +638,13 @@ async function generatePersonnelReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2>Personel Zimmet Özeti</h2>
-            <div>
-                <button class="btn btn-info" id="download-personnel-pdf" style="margin-right: 8px;">📄 PDF</button>
-                <button class="btn btn-success" id="download-personnel-excel">📊 Excel</button>
+            <div class="export-group">
+                <button class="btn-export pdf" id="download-personnel-pdf" data-tooltip="PDF Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </button>
+                <button class="btn-export excel" id="download-personnel-excel" data-tooltip="Excel Raporu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                </button>
             </div>
         </div>
         <p>Sistemde aktif zimmeti bulunan <strong>${personnelData.length}</strong> personel listelenmektedir.</p>

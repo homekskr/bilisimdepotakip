@@ -38,10 +38,16 @@ async function render() {
             <div>
                 <h1>Malzemeler</h1>
             </div>
-            <div>
-                ${canManage ? '<button class="btn btn-primary" id="add-material-btn" style="margin-right: 8px;">+ Yeni Malzeme</button>' : ''}
-                <button class="btn btn-info" id="download-inventory-pdf" style="margin-right: 8px;">📦 PDF</button>
-                <button class="btn btn-success" id="download-inventory-excel">📊 Excel</button>
+            <div style="display: flex; gap: var(--spacing-md); align-items: center;">
+                <div class="export-group">
+                    <button class="btn-export pdf" id="download-inventory-pdf" data-tooltip="PDF Raporu">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    </button>
+                    <button class="btn-export excel" id="download-inventory-excel" data-tooltip="Excel Raporu">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                    </button>
+                </div>
+                ${canManage ? '<button class="btn btn-primary" id="add-material-btn">+ Yeni Malzeme</button>' : ''}
             </div>
         </div>
         

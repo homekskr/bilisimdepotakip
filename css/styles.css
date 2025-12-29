@@ -360,6 +360,81 @@ body {
     cursor: not-allowed;
 }
 
+/* Export Buttons - Modern Style */
+.export-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.btn-export {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    position: relative;
+}
+
+.btn-export:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+    border-color: var(--primary);
+}
+
+.btn-export svg {
+    width: 20px;
+    height: 20px;
+    transition: transform var(--transition-fast);
+}
+
+.btn-export:hover svg {
+    transform: scale(1.1);
+}
+
+.btn-export.pdf:hover {
+    color: #ef4444;
+    /* PDF Red */
+    border-color: #ef4444;
+}
+
+.btn-export.excel:hover {
+    color: #10b981;
+    /* Excel Green */
+    border-color: #10b981;
+}
+
+.btn-export::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: var(--bg-primary);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all var(--transition-fast);
+    border: 1px solid var(--glass-border);
+    z-index: 10;
+}
+
+.btn-export:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px);
+}
+
 /* Error Messages */
 .error-message {
     padding: var(--spacing-sm) var(--spacing-md);
