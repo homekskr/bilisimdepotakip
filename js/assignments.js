@@ -1,6 +1,7 @@
 // Assignments Module (Zimmetler)
 import { supabase, checkUserRole } from './supabase-client.js';
 import { showToast, showConfirm } from './ui.js';
+import { exportToPDF, exportToExcel } from './utils/export-logic.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -28,9 +29,10 @@ async function render(forceRefresh = false) {
     pageContent.innerHTML = `
         <div class="page-header">
             <div>
-                <h1>Zimmetler</h1>
+                ${canManage ? '<button class="btn btn-primary" id="add-assignment-btn" style="margin-right: 8px;">+ Yeni Zimmet</button>' : ''}
+                <button class="btn btn-info" id="download-assignments-pdf" style="margin-right: 8px;">📦 PDF</button>
+                <button class="btn btn-success" id="download-assignments-excel">📊 Excel</button>
             </div>
-            ${canManage ? '<button class="btn btn-primary" id="add-assignment-btn">+ Yeni Zimmet</button>' : ''}
         </div>
         
         <div class="card">
@@ -212,6 +214,8 @@ async function render(forceRefresh = false) {
     document.getElementById('close-assignment-modal')?.addEventListener('click', closeAssignmentModal);
     document.getElementById('cancel-assignment-btn')?.addEventListener('click', closeAssignmentModal);
     document.getElementById('save-assignment-btn')?.addEventListener('click', saveAssignment);
+    document.getElementById('download-assignments-pdf')?.addEventListener('click', downloadAssignmentsPDF);
+    document.getElementById('download-assignments-excel')?.addEventListener('click', downloadAssignmentsExcel);
 
     // Assignment detail modal events
     document.getElementById('close-assignment-detail-modal')?.addEventListener('click', () => document.getElementById('assignment-detail-modal').classList.add('hidden'));
@@ -584,6 +588,52 @@ function attachTableEventListeners() {
             viewAssignmentDetails(btn.dataset.id);
         });
     });
+}
+
+// Export to PDF
+async function downloadAssignmentsPDF() {
+    const assignments = window.assignmentsData || [];
+    if (assignments.length === 0) {
+        showToast('Raporlanacak zimmet bulunamadı', 'warning');
+        return;
+    }
+
+    const columns = [
+        { header: 'Malzeme', key: 'materials.name' },
+        { header: 'Zimmetli', key: 'assigned_to' },
+        { header: 'Unvan', key: 'target_title' },
+        { header: 'Adet', key: 'quantity', style: 'width: 40px; text-align: center;' },
+        { header: 'Tarih', key: 'assigned_date', style: 'width: 80px;', transform: val => new Date(val).toLocaleDateString('tr-TR') },
+        { header: 'Durum', key: 'status', style: 'width: 70px;', transform: val => val === 'aktif' ? 'Aktif' : 'İade Edildi' }
+    ];
+
+    exportToPDF('Zimmet Kayıtları Raporu', assignments, columns);
+}
+
+// Export to Excel
+async function downloadAssignmentsExcel() {
+    const assignments = window.assignmentsData || [];
+    if (assignments.length === 0) {
+        showToast('Raporlanacak zimmet bulunamadı', 'warning');
+        return;
+    }
+
+    const columns = [
+        { header: 'Malzeme', key: 'materials.name' },
+        { header: 'Marka/Model', key: 'materials.brand_model' },
+        { header: 'Zimmetli Personel', key: 'assigned_to' },
+        { header: 'Personel Unvanı', key: 'target_title' },
+        { header: 'Kurum', key: 'institution' },
+        { header: 'Bina', key: 'building' },
+        { header: 'Birim', key: 'unit' },
+        { header: 'Adet', key: 'quantity' },
+        { header: 'Zimmet Tarihi', key: 'assigned_date', transform: val => new Date(val).toLocaleDateString('tr-TR') },
+        { header: 'İade Tarihi', key: 'return_date', transform: val => val ? new Date(val).toLocaleDateString('tr-TR') : '-' },
+        { header: 'Durum', key: 'status', transform: val => val === 'aktif' ? 'Aktif' : 'İade Edildi' },
+        { header: 'Teslim Eden', key: 'profiles.full_name' }
+    ];
+
+    exportToExcel('Zimmet_Kayitlari', assignments, columns);
 }
 
 // Export module

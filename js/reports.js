@@ -1,5 +1,5 @@
-// Reports Module
 import { supabase } from './supabase-client.js';
+import { exportToPDF, exportToExcel } from './utils/export-logic.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -107,7 +107,10 @@ async function generateInventoryReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2>Detaylı Envanter Listesi</h2>
-            <button class="btn btn-primary" id="download-inventory-pdf">📄 PDF Rapor Al</button>
+            <div>
+                <button class="btn btn-info" id="download-inventory-pdf" style="margin-right: 8px;">📄 PDF</button>
+                <button class="btn btn-success" id="download-inventory-excel">📊 Excel</button>
+            </div>
         </div>
         <p><strong>Toplam Malzeme Türü:</strong> ${totalItems}</p>
         <p><strong>Toplam Adet:</strong> ${totalQuantity}</p>
@@ -131,7 +134,27 @@ async function generateInventoryReport() {
     `;
 
     document.getElementById('download-inventory-pdf')?.addEventListener('click', () => {
-        downloadPDF('Envanter Raporu', materials, 'inventory');
+        const columns = [
+            { header: 'Durum', key: 'condition', style: 'width: 60px;' },
+            { header: 'Tür', key: 'type', style: 'width: 120px;' },
+            { header: 'Malzeme Adı', key: 'name' },
+            { header: 'Marka/Model', key: 'brand_model' },
+            { header: 'Adet', key: 'quantity', style: 'width: 40px; text-align: center;' }
+        ];
+        exportToPDF('Envanter Raporu', materials, columns);
+    });
+
+    document.getElementById('download-inventory-excel')?.addEventListener('click', () => {
+        const columns = [
+            { header: 'Durum', key: 'condition' },
+            { header: 'Tür', key: 'type' },
+            { header: 'Malzeme Adı', key: 'name' },
+            { header: 'Marka/Model', key: 'brand_model' },
+            { header: 'Adet', key: 'quantity' },
+            { header: 'Barkod', key: 'barcode' },
+            { header: 'Eklenme Tarihi', key: 'created_at', transform: val => new Date(val).toLocaleDateString('tr-TR') }
+        ];
+        exportToExcel('Envanter_Raporu', materials, columns);
     });
 }
 
@@ -177,7 +200,10 @@ async function generateAssignmentsReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2>Giriş/Çıkış ve Zimmet Raporu</h2>
-            <button class="btn btn-primary" id="download-assignments-pdf">📄 PDF Rapor Al</button>
+            <div>
+                <button class="btn btn-info" id="download-assignments-pdf" style="margin-right: 8px;">📄 PDF</button>
+                <button class="btn btn-success" id="download-assignments-excel">📊 Excel</button>
+            </div>
         </div>
         <p><strong>Aktif Zimmetler:</strong> ${activeCount}</p>
         <p><strong>İade Edilenler:</strong> ${returnedCount}</p>
@@ -203,7 +229,30 @@ async function generateAssignmentsReport() {
     `;
 
     document.getElementById('download-assignments-pdf')?.addEventListener('click', () => {
-        downloadPDF('Zimmet Raporu', assignments, 'assignments');
+        const columns = [
+            { header: 'Malzeme', key: 'materials.name' },
+            { header: 'Marka/Model', key: 'materials.brand_model' },
+            { header: 'Zimmetlenen', key: 'assigned_to' },
+            { header: 'Unvan', key: 'target_title' },
+            { header: 'Adet', key: 'quantity', style: 'width: 30px; text-align: center;' },
+            { header: 'Tarih', key: 'assigned_date', style: 'width: 70px;', transform: val => new Date(val).toLocaleDateString('tr-TR') },
+            { header: 'Durum', key: 'status', style: 'width: 60px;', transform: val => val === 'aktif' ? 'Aktif' : 'İade Edildi' }
+        ];
+        exportToPDF('Zimmet Raporu', assignments, columns);
+    });
+
+    document.getElementById('download-assignments-excel')?.addEventListener('click', () => {
+        const columns = [
+            { header: 'Malzeme', key: 'materials.name' },
+            { header: 'Marka/Model', key: 'materials.brand_model' },
+            { header: 'Zimmetlenen', key: 'assigned_to' },
+            { header: 'Unvan', key: 'target_title' },
+            { header: 'Adet', key: 'quantity' },
+            { header: 'Tarih', key: 'assigned_date', transform: val => new Date(val).toLocaleDateString('tr-TR') },
+            { header: 'Durum', key: 'status', transform: val => val === 'aktif' ? 'Aktif' : 'İade Edildi' },
+            { header: 'Teslim Eden', key: 'profiles.full_name' }
+        ];
+        exportToExcel('Zimmet_Raporu', assignments, columns);
     });
 }
 
@@ -252,7 +301,10 @@ async function generateRequestsReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2>Talep ve Onay Geçmişi Raporu</h2>
-            <button class="btn btn-primary" id="download-requests-pdf">📄 PDF Rapor Al</button>
+            <div>
+                <button class="btn btn-info" id="download-requests-pdf" style="margin-right: 8px;">📄 PDF</button>
+                <button class="btn btn-success" id="download-requests-excel">📊 Excel</button>
+            </div>
         </div>
         <p><strong>Bekleyen:</strong> ${pending}</p>
         <p><strong>Onaylanan:</strong> ${approved}</p>
@@ -277,7 +329,27 @@ async function generateRequestsReport() {
     `;
 
     document.getElementById('download-requests-pdf')?.addEventListener('click', () => {
-        downloadPDF('Talep Raporu', requests, 'requests');
+        const columns = [
+            { header: 'Talep Eden', key: 'profiles.full_name' },
+            { header: 'Malzeme', key: 'materials.name' },
+            { header: 'Adet', key: 'quantity', style: 'width: 40px; text-align: center;' },
+            { header: 'Durum', key: 'status', style: 'width: 80px;', transform: val => val.toUpperCase() },
+            { header: 'Tarih', key: 'created_at', style: 'width: 70px;', transform: val => new Date(val).toLocaleDateString('tr-TR') }
+        ];
+        exportToPDF('Talep Raporu', requests, columns);
+    });
+
+    document.getElementById('download-requests-excel')?.addEventListener('click', () => {
+        const columns = [
+            { header: 'Talep Eden', key: 'profiles.full_name' },
+            { header: 'Malzeme Türü', key: 'requested_type' },
+            { header: 'Atanan Malzeme', key: 'materials.name' },
+            { header: 'Adet', key: 'quantity' },
+            { header: 'Durum', key: 'status' },
+            { header: 'Talep Tarihi', key: 'created_at', transform: val => new Date(val).toLocaleDateString('tr-TR') },
+            { header: 'Neden', key: 'reason' }
+        ];
+        exportToExcel('Talep_Raporu', requests, columns);
     });
 }
 
@@ -326,7 +398,10 @@ async function generateStockReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2>Tür Bazlı Stok Özeti</h2>
-            <button class="btn btn-primary" id="download-stock-pdf">📄 PDF Rapor Al</button>
+            <div>
+                <button class="btn btn-info" id="download-stock-pdf" style="margin-right: 8px;">📄 PDF</button>
+                <button class="btn btn-success" id="download-stock-excel">📊 Excel</button>
+            </div>
         </div>
         <br>
         <div class="table-container">
@@ -346,7 +421,21 @@ async function generateStockReport() {
     `;
 
     document.getElementById('download-stock-pdf')?.addEventListener('click', () => {
-        downloadPDF('Stok Durumu Raporu', stockData, 'stock');
+        const columns = [
+            { header: 'Malzeme Türü', key: 'type' },
+            { header: 'Çeşit Sayısı', key: 'count', style: 'width: 80px; text-align: center;' },
+            { header: 'Toplam Stok', key: 'quantity', style: 'width: 80px; text-align: center;' }
+        ];
+        exportToPDF('Stok Durumu Raporu', stockData, columns);
+    });
+
+    document.getElementById('download-stock-excel')?.addEventListener('click', () => {
+        const columns = [
+            { header: 'Malzeme Türü', key: 'type' },
+            { header: 'Çeşit Sayısı', key: 'count' },
+            { header: 'Toplam Stok', key: 'quantity' }
+        ];
+        exportToExcel('Stok_Durumu_Raporu', stockData, columns);
     });
 }
 
@@ -444,7 +533,10 @@ async function generateCriticalStockReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2 style="color: var(--danger);">⚠️ Kritik Stok Raporu (≤ 2 Adet)</h2>
-            <button class="btn btn-danger" id="download-critical-pdf">📄 PDF Rapor Al</button>
+            <div>
+                <button class="btn btn-info" id="download-critical-pdf" style="margin-right: 8px;">📄 PDF</button>
+                <button class="btn btn-success" id="download-critical-excel">📊 Excel</button>
+            </div>
         </div>
         <p>Sistemde stok miktarı kritik seviyeye ulaşmış <strong>${materials?.length || 0}</strong> farklı malzeme türü bulunmaktadır.</p>
         <br>
@@ -473,7 +565,23 @@ async function generateCriticalStockReport() {
     `;
 
     document.getElementById('download-critical-pdf')?.addEventListener('click', () => {
-        downloadPDF('Kritik Stok Raporu', materials, 'critical');
+        const columns = [
+            { header: 'Tür', key: 'type' },
+            { header: 'Malzeme Adı', key: 'name' },
+            { header: 'Marka/Model', key: 'brand_model' },
+            { header: 'Mevcut Stok', key: 'quantity', style: 'width: 80px; text-align: center; font-weight: bold; color: #ef4444;' }
+        ];
+        exportToPDF('Kritik Stok Raporu', materials, columns);
+    });
+
+    document.getElementById('download-critical-excel')?.addEventListener('click', () => {
+        const columns = [
+            { header: 'Tür', key: 'type' },
+            { header: 'Malzeme Adı', key: 'name' },
+            { header: 'Marka/Model', key: 'brand_model' },
+            { header: 'Mevcut Stok', key: 'quantity' }
+        ];
+        exportToExcel('Kritik_Stok_Raporu', materials, columns);
     });
 }
 
@@ -510,7 +618,10 @@ async function generatePersonnelReport() {
     preview.innerHTML = `
         <div class="page-header">
             <h2>Personel Zimmet Özeti</h2>
-            <button class="btn btn-primary" id="download-personnel-pdf">📄 PDF Rapor Al</button>
+            <div>
+                <button class="btn btn-info" id="download-personnel-pdf" style="margin-right: 8px;">📄 PDF</button>
+                <button class="btn btn-success" id="download-personnel-excel">📊 Excel</button>
+            </div>
         </div>
         <p>Sistemde aktif zimmeti bulunan <strong>${personnelData.length}</strong> personel listelenmektedir.</p>
         <br>
@@ -542,249 +653,26 @@ async function generatePersonnelReport() {
     `;
 
     document.getElementById('download-personnel-pdf')?.addEventListener('click', () => {
-        downloadPDF('Personel Zimmet Özeti', personnelData, 'personnel');
+        const columns = [
+            { header: 'Personel / Unvan', key: 'name', style: 'width: 150px;', transform: (val, item) => `${val}\n${item.title || '-'}` },
+            { header: 'Zimmetli Malzemeler', key: 'items', transform: val => val.map(i => `${i.materials?.name} [${i.materials?.brand_model || '-'}] (${i.quantity} ad.)`).join('\n') },
+            { header: 'Adet', key: 'items', style: 'width: 40px; text-align: center;', transform: val => val.reduce((sum, i) => sum + i.quantity, 0) }
+        ];
+        exportToPDF('Personel Zimmet Özeti', personnelData, columns);
+    });
+
+    document.getElementById('download-personnel-excel')?.addEventListener('click', () => {
+        const columns = [
+            { header: 'Personel', key: 'name' },
+            { header: 'Unvan', key: 'title' },
+            { header: 'Zimmetli Malzemeler', key: 'items', transform: val => val.map(i => `${i.materials?.name} [${i.materials?.brand_model || '-'}] (${i.quantity} ad.)`).join(' | ') },
+            { header: 'Toplam Adet', key: 'items', transform: val => val.reduce((sum, i) => sum + i.quantity, 0) }
+        ];
+        exportToExcel('Personel_Zimmet_Ozeti', personnelData, columns);
     });
 }
 
-// Download PDF with Standardized Template
-function downloadPDF(title, data, type) {
-    const printWindow = window.open('', '_blank');
-    const reportDate = new Date().toLocaleString('tr-TR');
-
-    let tableHtml = '';
-
-    // Header for PDF
-    const pdfHeader = `
-        <div class="pdf-report-date">RAPOR TARİHİ: ${reportDate}</div>
-        <div class="pdf-header">
-            KAHRAMANMARAŞ İL SAĞLIK MÜDÜRLÜĞÜ<br>
-            BİLİŞİM DEPOSU ${title.toUpperCase()}
-        </div>
-    `;
-
-    // Process data based on report type for the printable table
-    switch (type) {
-        case 'inventory':
-            tableHtml = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 60px;">Durum</th>
-                            <th style="width: 120px;">Tür</th>
-                            <th>Malzeme Adı</th>
-                            <th>Marka/Model</th>
-                            <th style="width: 40px;">Adet</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.map(m => `
-                            <tr>
-                                <td>${m.condition}</td>
-                                <td>${m.type}</td>
-                                <td>${m.name}</td>
-                                <td>${m.brand_model}</td>
-                                <td style="text-align: center;">${m.quantity}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            break;
-        case 'assignments':
-            tableHtml = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Malzeme</th>
-                            <th>Marka/Model</th>
-                            <th>Zimmetlenen</th>
-                            <th>Unvan</th>
-                            <th style="width: 30px;">Adet</th>
-                            <th style="width: 70px;">Tarih</th>
-                            <th style="width: 60px;">Durum</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.map(a => `
-                            <tr>
-                                <td>${a.materials?.name || '-'}</td>
-                                <td>${a.materials?.brand_model || '-'}</td>
-                                <td>${a.assigned_to}</td>
-                                <td>${a.target_title || '-'}</td>
-                                <td style="text-align: center;">${a.quantity}</td>
-                                <td>${new Date(a.assigned_date).toLocaleDateString('tr-TR')}</td>
-                                <td>${a.status === 'aktif' ? 'Aktif' : 'İade Edildi'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            break;
-        case 'requests':
-            tableHtml = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Talep Eden</th>
-                            <th>Malzeme</th>
-                            <th style="width: 40px;">Adet</th>
-                            <th style="width: 80px;">Durum</th>
-                            <th style="width: 70px;">Tarih</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.map(r => `
-                            <tr>
-                                <td>${r.profiles?.full_name || '-'}</td>
-                                <td>${r.materials?.name || '-'}</td>
-                                <td style="text-align: center;">${r.quantity}</td>
-                                <td>${r.status.toUpperCase()}</td>
-                                <td>${new Date(r.created_at).toLocaleDateString('tr-TR')}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            break;
-        case 'stock':
-            tableHtml = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Malzeme Türü</th>
-                            <th style="width: 80px;">Çeşit Sayısı</th>
-                            <th style="width: 80px;">Toplam Stok</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.map(s => `
-                            <tr>
-                                <td>${s.type}</td>
-                                <td style="text-align: center;">${s.count}</td>
-                                <td style="text-align: center;">${s.quantity}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            break;
-        case 'critical':
-            tableHtml = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Tür</th>
-                            <th>Malzeme Adı</th>
-                            <th>Marka/Model</th>
-                            <th style="width: 80px;">Mevcut Stok</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.map(m => `
-                            <tr>
-                                <td>${m.type}</td>
-                                <td>${m.name}</td>
-                                <td>${m.brand_model}</td>
-                                <td style="text-align: center; font-weight: bold; color: #ef4444;">${m.quantity}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            break;
-        case 'personnel':
-            tableHtml = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 150px;">Personel / Unvan</th>
-                            <th>Zimmetli Malzemeler</th>
-                            <th style="width: 40px;">Adet</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.map(p => `
-                            <tr>
-                                <td>
-                                    <strong>${p.name}</strong><br>
-                                    ${p.title || '-'}
-                                </td>
-                                <td>
-                                    ${p.items.map(i => `${i.materials?.name} [${i.materials?.brand_model || '-'}] (${i.quantity} ad.)`).join('<br>')}
-                                </td>
-                                <td style="text-align: center;">${p.items.reduce((sum, i) => sum + i.quantity, 0)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            break;
-    }
-
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>${title}</title>
-            <style>
-                @page {
-                    size: A4 portrait;
-                    margin: 1cm;
-                }
-                body {
-                    font-family: Arial, sans-serif;
-                    font-size: 10px;
-                    color: #000;
-                    margin: 0;
-                    padding: 0;
-                }
-                .pdf-header {
-                    text-align: center;
-                    margin-bottom: 20px;
-                    font-weight: bold;
-                    border-bottom: 2px solid #000;
-                    padding-bottom: 10px;
-                    font-size: 12px;
-                }
-                .pdf-report-date {
-                    text-align: right;
-                    margin-bottom: 5px;
-                    font-size: 9px;
-                }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    table-layout: fixed;
-                }
-                th, td {
-                    border: 1px solid #000;
-                    padding: 4px;
-                    text-align: left;
-                    word-wrap: break-word;
-                }
-                th {
-                    background-color: #f2f2f2;
-                }
-                tr:nth-child(even) {
-                    background-color: #fafafa;
-                }
-            </style>
-        </head>
-        <body>
-            ${pdfHeader}
-            ${tableHtml}
-            <script>
-                window.onload = function() {
-                    window.print();
-                    setTimeout(() => window.close(), 500);
-                };
-            </script>
-        </body>
-        </html>
-    `);
-
-    printWindow.document.close();
-}
+// Replaced by centralized exportToPDF
 
 // Export module
 window.reportsModule = { render };

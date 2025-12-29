@@ -1,6 +1,7 @@
 // Materials Module
 import { supabase, checkUserRole } from './supabase-client.js';
 import { showToast, showConfirm } from './ui.js';
+import { exportToPDF, exportToExcel } from './utils/export-logic.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -39,7 +40,8 @@ async function render() {
             </div>
             <div>
                 ${canManage ? '<button class="btn btn-primary" id="add-material-btn" style="margin-right: 8px;">+ Yeni Malzeme</button>' : ''}
-                <button class="btn btn-info" id="download-inventory-pdf">📦 Envanter PDF</button>
+                <button class="btn btn-info" id="download-inventory-pdf" style="margin-right: 8px;">📦 PDF</button>
+                <button class="btn btn-success" id="download-inventory-excel">📊 Excel</button>
             </div>
         </div>
         
@@ -238,6 +240,7 @@ async function render() {
     document.getElementById('cancel-material-btn')?.addEventListener('click', closeMaterialModal);
     document.getElementById('save-material-btn')?.addEventListener('click', saveMaterial);
     document.getElementById('download-inventory-pdf')?.addEventListener('click', downloadInventoryPDF);
+    document.getElementById('download-inventory-excel')?.addEventListener('click', downloadInventoryExcel);
 
     // Initial attachment of table listeners
     attachTableEventListeners();
@@ -541,7 +544,7 @@ function attachTableEventListeners() {
     });
 }
 
-// Export module
+// Export to PDF
 async function downloadInventoryPDF() {
     const materials = window.materialsData || [];
     if (materials.length === 0) {
@@ -551,107 +554,41 @@ async function downloadInventoryPDF() {
 
     // Sort by Condition (Durum) and then Type (Tür)
     const sortedMaterials = [...materials].sort((a, b) => {
-        if (a.condition !== b.condition) {
-            return a.condition.localeCompare(b.condition, 'tr');
-        }
+        if (a.condition !== b.condition) return a.condition.localeCompare(b.condition, 'tr');
         return a.type.localeCompare(b.type, 'tr');
     });
 
-    const printWindow = window.open('', '_blank');
-    const reportDate = new Date().toLocaleString('tr-TR');
+    const columns = [
+        { header: 'Durum', key: 'condition', style: 'width: 60px;' },
+        { header: 'Tür', key: 'type', style: 'width: 120px;' },
+        { header: 'Malzeme Adı', key: 'name' },
+        { header: 'Marka/Model', key: 'brand_model' },
+        { header: 'Adet', key: 'quantity', style: 'width: 40px; text-align: center;' }
+    ];
 
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Bilişim Deposu Envanteri</title>
-            <style>
-                @page {
-                    size: A4 vertical;
-                    margin: 1cm;
-                }
-                body {
-                    font-family: Arial, sans-serif;
-                    font-size: 10px;
-                    color: #000;
-                    margin: 0;
-                    padding: 0;
-                }
-                .header {
-                    text-align: center;
-                    margin-bottom: 20px;
-                    font-weight: bold;
-                    border-bottom: 2px solid #000;
-                    padding-bottom: 10px;
-                }
-                .report-date {
-                    text-align: right;
-                    margin-bottom: 5px;
-                    font-size: 10px;
-                }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    table-layout: fixed;
-                }
-                th, td {
-                    border: 1px solid #000;
-                    padding: 4px;
-                    text-align: left;
-                    word-wrap: break-word;
-                }
-                th {
-                    background-color: #f2f2f2;
-                }
-                .durum-col { width: 45px; }
-                .tur-col { width: 100px; }
-                .adet-col { width: 35px; text-align: center; }
-                .tarih-col { width: 70px; }
-            </style>
-        </head>
-        <body>
-            <div class="report-date">RAPOR TARİHİ: ${reportDate}</div>
-            <div class="header">
-                KAHRAMANMARAŞ İL SAĞLIK MÜDÜRLÜĞÜ<br>
-                BİLİŞİM DEPOSU MALZEME ENVANTERİ
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th class="durum-col">Durum</th>
-                        <th class="tur-col">Tür</th>
-                        <th>Malzeme Adı</th>
-                        <th>Marka/Model</th>
-                        <th class="adet-col">Adet</th>
-                        <th class="tarih-col">Eklenme</th>
-                        <th class="tarih-col">Güncelleme</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${sortedMaterials.map(m => `
-                        <tr>
-                            <td>${m.condition}</td>
-                            <td>${m.type}</td>
-                            <td>${m.name}</td>
-                            <td>${m.brand_model}</td>
-                            <td style="text-align: center;">${m.quantity}</td>
-                            <td>${new Date(m.created_at).toLocaleDateString('tr-TR')}</td>
-                            <td>${new Date(m.updated_at || m.created_at).toLocaleDateString('tr-TR')}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            <script>
-                window.onload = function() {
-                    window.print();
-                    setTimeout(() => window.close(), 500);
-                };
-            </script>
-        </body>
-        </html>
-    `);
+    exportToPDF('Malzeme Envanter Raporu', sortedMaterials, columns);
+}
 
-    printWindow.document.close();
+// Export to Excel
+async function downloadInventoryExcel() {
+    const materials = window.materialsData || [];
+    if (materials.length === 0) {
+        showToast('Raporlanacak malzeme bulunamadı', 'warning');
+        return;
+    }
+
+    const columns = [
+        { header: 'Durum', key: 'condition' },
+        { header: 'Tür', key: 'type' },
+        { header: 'Malzeme Adı', key: 'name' },
+        { header: 'Marka/Model', key: 'brand_model' },
+        { header: 'Adet', key: 'quantity' },
+        { header: 'Barkod', key: 'barcode' },
+        { header: 'Özellikler', key: 'specifications' },
+        { header: 'Eklenme Tarihi', key: 'created_at', transform: val => new Date(val).toLocaleDateString('tr-TR') }
+    ];
+
+    exportToExcel('Malzeme_Envanteri', materials, columns);
 }
 
 window.materialsModule = { render };

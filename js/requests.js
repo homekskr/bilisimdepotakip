@@ -1,6 +1,7 @@
 // Requests Module (Talepler ve Onay Sistemi)
 import { supabase, checkUserRole } from './supabase-client.js';
 import { showToast, showConfirm } from './ui.js';
+import { exportToPDF, exportToExcel } from './utils/export-logic.js';
 
 const pageContent = document.getElementById('page-content');
 
@@ -39,9 +40,10 @@ async function render() {
     pageContent.innerHTML = `
         <div class="page-header">
             <div>
-                <h1>Talepler</h1>
+                ${userRole !== 'depo' ? '<button class="btn btn-primary" id="add-request-btn" style="margin-right: 8px;">+ Yeni Talep</button>' : ''}
+                <button class="btn btn-info" id="download-requests-pdf" style="margin-right: 8px;">📦 PDF</button>
+                <button class="btn btn-success" id="download-requests-excel">📊 Excel</button>
             </div>
-            ${userRole !== 'depo' ? '<button class="btn btn-primary" id="add-request-btn">+ Yeni Talep</button>' : ''}
         </div>
         
         <div class="card">
@@ -262,6 +264,8 @@ async function render() {
     document.getElementById('close-approval-modal')?.addEventListener('click', closeApprovalModal);
     document.getElementById('cancel-approval-btn')?.addEventListener('click', closeApprovalModal);
     document.getElementById('confirm-approval-btn')?.addEventListener('click', confirmApproval);
+    document.getElementById('download-requests-pdf')?.addEventListener('click', downloadRequestsPDF);
+    document.getElementById('download-requests-excel')?.addEventListener('click', downloadRequestsExcel);
 
     // Assignment detail modal events
     document.getElementById('close-assignment-detail-modal')?.addEventListener('click', () => document.getElementById('assignment-detail-modal').classList.add('hidden'));
@@ -824,6 +828,54 @@ function attachTableEventListeners() {
     document.querySelectorAll('.view-assignment-details-btn').forEach(btn => {
         btn.addEventListener('click', () => viewAssignmentDetails(btn.dataset.id));
     });
+}
+
+// Export to PDF
+async function downloadRequestsPDF() {
+    const requests = window.requestsData || [];
+    if (requests.length === 0) {
+        showToast('Raporlanacak talep bulunamadı', 'warning');
+        return;
+    }
+
+    const columns = [
+        { header: 'Talep Eden', key: 'profiles.full_name' },
+        { header: 'Malzeme Türü', key: 'requested_type' },
+        { header: 'Kurum/Birim', key: 'institution', transform: (val, item) => `${val || '-'}\n${item.unit || '-'}` },
+        { header: 'Adet', key: 'quantity', style: 'width: 40px; text-align: center;' },
+        { header: 'Durum', key: 'status', style: 'width: 80px;', transform: val => val.toUpperCase() },
+        { header: 'Tarih', key: 'created_at', style: 'width: 70px;', transform: val => new Date(val).toLocaleDateString('tr-TR') }
+    ];
+
+    exportToPDF('Malzeme Talepleri Raporu', requests, columns);
+}
+
+// Export to Excel
+async function downloadRequestsExcel() {
+    const requests = window.requestsData || [];
+    if (requests.length === 0) {
+        showToast('Raporlanacak talep bulunamadı', 'warning');
+        return;
+    }
+
+    const columns = [
+        { header: 'Talep Eden', key: 'profiles.full_name' },
+        { header: 'Talep Edilen Malzeme Türü', key: 'requested_type' },
+        { header: 'Atanan Malzeme', key: 'materials.name', transform: val => val || 'Henüz Atanmadı' },
+        { header: 'Kurum', key: 'institution' },
+        { header: 'Bina', key: 'building' },
+        { header: 'Birim', key: 'unit' },
+        { header: 'Zimmetlenecek Kişi', key: 'target_personnel' },
+        { header: 'Personel Unvanı', key: 'target_title' },
+        { header: 'Adet', key: 'quantity' },
+        { header: 'Talep Nedeni', key: 'reason' },
+        { header: 'Talep Tarihi', key: 'created_at', transform: val => new Date(val).toLocaleDateString('tr-TR') },
+        { header: 'Yönetici Onayı', key: 'manager_approval', transform: val => val || 'Bekliyor' },
+        { header: 'Başkan Onayı', key: 'president_approval', transform: val => val || 'Bekliyor' },
+        { header: 'Genel Durum', key: 'status' }
+    ];
+
+    exportToExcel('Malzeme_Talepleri', requests, columns);
 }
 
 // Export module
