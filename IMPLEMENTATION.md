@@ -1,5 +1,5 @@
 # Proje Uygulama ve İlerleme Rehberi
-*(Son Güncelleme: 26.12.2025)*
+*(Son Güncelleme: 02.01.2026)*
 
 Bu belge, **Bilişim Depo Takip Sistemi** için yapılan en son geliştirmeleri ve teknik planları içerir.
 
@@ -18,6 +18,24 @@ Kullanıcı deneyimini iyileştirmek için arayüz sadeleştirildi.
 *   **Temiz Başlıklar:** Sayfa başlıklarındaki gereksiz açıklamalar kaldırıldı.
 *   **Kompakt Tablolar:** Malzeme tablosundan tarih sütunları kaldırıldı, butonlar ikona dönüştürüldü ve yan yana getirildi.
 *   **Mobil Uyum:** Sol menü ve kart boşlukları mobil cihazlar için optimize edildi.
+
+### 4. Güvenli Onay ve Stok Kontrolü
+Onay süreci, yarış durumlarını (race condition) engellemek için veritabanı seviyesinde zırhlandırıldı.
+
+*   **`approve_request_secure` RPC:** Onay anında stok kontrolü yapan ve yetersizse işlemi reddeden atomik veritabanı fonksiyonu devreye alındı.
+*   **Kesin Stok Doğruluğu:** Onay modalında ve kayıt anında stok verilerinin tutarlılığı garanti altına alındı.
+
+### 5. Birleşik Bildirim Sistemi (Unified Notifications)
+Tüm bildirim kanalları tek bir merkezden yönetilecek şekilde stabilize edildi.
+
+*   **Unified Trigger:** In-App (Uygulama içi), Browser Push ve SMS bildirimleri tek bir SQL tetikleyicisi (`unified-notifications-trigger.sql`) altında birleştirildi.
+*   **Tam Otomasyon:** Talep oluşturma, yönetici onayı, başkan onayı ve zimmet çıkışı gibi her aşamada ilgili kişilere anlık bildirim gitmesi sağlandı.
+
+### 6. Gelişmiş Güvenlik Katmanı (RLS)
+Veri güvenliği veritabanı politikalarıyla en üst seviyeye çıkarıldı.
+
+*   **`requests` RLS:** Personelin sadece kendi taleplerini, yetkililerin ise tümünü görebileceği akıllı filtreleme uygulandı.
+*   **`push_subscriptions` RLS:** Bildirim abonelik verileri sadece sahipleri tarafından erişilebilir hale getirildi.
 
 ### 3. Deployment Altyapısı
 Proje canlıya alınmaya hazır hale getirildi.

@@ -494,16 +494,21 @@ async function openApprovalModal(requestId, requestedType, role) {
 
     info.textContent = `Talep Edilen Tür: ${requestedType}`;
 
-    // Fetch matching materials
+    // Fetch matching materials with sufficient stock
     const { data: materials, error } = await supabase
         .from('materials')
         .select('*')
         .eq('type', requestedType)
-        .gt('quantity', 0)
+        .gte('quantity', req?.quantity || 1) // Only show materials with enough stock
         .order('name');
 
-    if (error || !materials || materials.length === 0) {
-        showToast(`${requestedType} türünde stokta uygun malzeme bulunamadı!`, 'warning');
+    if (error) {
+        showToast('Stok sorgulanırken bir hata oluştu: ' + error.message, 'error');
+        return;
+    }
+
+    if (!materials || materials.length === 0) {
+        showToast(`${requestedType} türünde talep edilen miktarı (${req?.quantity || 1}) karşılayacak stokta ürün bulunamadı!`, 'warning');
         return;
     }
 
@@ -533,13 +538,34 @@ async function confirmApproval() {
         return;
     }
 
-    if (role === 'manager') {
-        await processManagerApproval(id, true, materialId, quantity);
-    } else if (role === 'president') {
-        await processPresidentApproval(id, true, materialId, quantity);
-    }
+    // Final check: Fetch current stock of selected material to ensure it hasn't changed
+    try {
+        const { data: material, error: stockError } = await supabase
+            .from('materials')
+            .select('quantity, name')
+            .eq('id', materialId)
+            .single();
 
-    closeApprovalModal();
+        if (stockError || !material) {
+            showToast('Malzeme bilgisi alınamadı!', 'error');
+            return;
+        }
+
+        if (material.quantity < quantity) {
+            showToast(`Yetersiz stok! ${material.name} için mevcut stok: ${material.quantity}`, 'error');
+            return;
+        }
+
+        if (role === 'manager') {
+            await processManagerApproval(id, true, materialId, quantity);
+        } else if (role === 'president') {
+            await processPresidentApproval(id, true, materialId, quantity);
+        }
+
+        closeApprovalModal();
+    } catch (err) {
+        showToast('Beklenmeyen bir hata oluştu: ' + err.message, 'error');
+    }
 }
 
 // Save request
@@ -602,29 +628,20 @@ async function approveAsManager(id, approved, requestedType = null) {
 
 async function processManagerApproval(id, approved, materialId = null, quantity = null) {
     try {
-        const updateData = {
-            manager_approval: approved ? 'onaylandi' : 'reddedildi',
-            manager_approved_by: window.currentUser.id,
-            manager_approved_at: new Date().toISOString(),
-            status: approved ? (approved === true ? 'yonetici_onayi' : 'reddedildi') : 'reddedildi'
-        };
-
-        if (approved && materialId) {
-            updateData.material_id = materialId;
-            updateData.status = 'yonetici_onayi';
-        }
-
-        // Update quantity if provided
-        if (approved && quantity !== null) {
-            updateData.quantity = quantity;
-        }
-
-        const { error } = await supabase
-            .from('requests')
-            .update(updateData)
-            .eq('id', id);
+        const { data, error } = await supabase.rpc('approve_request_secure', {
+            p_request_id: id,
+            p_approver_id: window.currentUser.id,
+            p_material_id: materialId,
+            p_quantity: quantity,
+            p_role: 'manager',
+            p_is_approve: approved
+        });
 
         if (error) throw error;
+        if (data && !data.success) {
+            showToast(data.message, 'error');
+            return;
+        }
 
         window.requestsData = null; // Invalidate cache
         showToast(approved ? 'Talep onaylandı' : 'Talep reddedildi', approved ? 'success' : 'info');
@@ -648,28 +665,20 @@ async function approveAsPresident(id, approved, requestedType = null) {
 
 async function processPresidentApproval(id, approved, materialId = null, quantity = null) {
     try {
-        const updateData = {
-            president_approval: approved ? 'onaylandi' : 'reddedildi',
-            president_approved_by: window.currentUser.id,
-            president_approved_at: new Date().toISOString(),
-            status: approved ? 'onaylandi' : 'reddedildi'
-        };
-
-        if (approved && materialId) {
-            updateData.material_id = materialId;
-        }
-
-        // Update quantity if provided
-        if (approved && quantity !== null) {
-            updateData.quantity = quantity;
-        }
-
-        const { error } = await supabase
-            .from('requests')
-            .update(updateData)
-            .eq('id', id);
+        const { data, error } = await supabase.rpc('approve_request_secure', {
+            p_request_id: id,
+            p_approver_id: window.currentUser.id,
+            p_material_id: materialId,
+            p_quantity: quantity,
+            p_role: 'president',
+            p_is_approve: approved
+        });
 
         if (error) throw error;
+        if (data && !data.success) {
+            showToast(data.message, 'error');
+            return;
+        }
 
         window.requestsData = null; // Invalidate cache
         showToast(approved ? 'Talep onaylandı' : 'Talep reddedildi', approved ? 'success' : 'info');

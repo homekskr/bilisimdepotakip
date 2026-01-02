@@ -268,7 +268,10 @@ function renderMaterialsTable(materials, canManage) {
             <td data-label="Durum"><span class="badge ${m.condition === 'YENİ' ? 'badge-success' : 'badge-warning'}">${escapeHTML(m.condition)}</span></td>
             <td data-label="Tür">${escapeHTML(m.type)}</td>
             <td data-label="Malzeme Adı">${escapeHTML(m.name)}</td>
-            <td data-label="Marka/Model">${escapeHTML(m.brand_model)}</td>
+            <td data-label="Marka/Model">
+                <div>${escapeHTML(m.brand_model)}</div>
+                ${m.specifications ? `<div class="sub-text" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">${escapeHTML(m.specifications)}</div>` : ''}
+            </td>
             <td data-label="Adet"><span class="badge ${m.quantity > 0 ? 'badge-success' : 'badge-danger'}">${m.quantity}</span></td>
             <td data-label="Eklenme Tarihi">${new Date(m.created_at).toLocaleDateString('tr-TR')}</td>
             ${canManage ? `
