@@ -10,8 +10,8 @@ DECLARE
     v_title TEXT;
     v_message TEXT;
     v_link TEXT;
-    v_push_api_url TEXT := 'https://bilisimdepotakip-snowy.vercel.app/api/send-push';
-    v_sms_api_url TEXT := 'https://bilisimdepotakip-snowy.vercel.app/api/send-sms';
+    v_push_api_url TEXT := 'https://bilisimdepo.vercel.app/api/send-push';
+    v_sms_api_url TEXT := 'https://bilisimdepo.vercel.app/api/send-sms';
     -- Mevcut çalışan API key kullanılır:
     v_api_key TEXT := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9paXBwbXpqZWFpeHN6Z3dlYnpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NjUxODExNCwiZXhwIjoyMDgyMDk0MTE0fQ.JYUdzOxNX1p6lR5OYEVHZC9IJGmYWUfBvsIFLfC9GbM';
 BEGIN
