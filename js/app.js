@@ -288,7 +288,9 @@ async function loadDashboard() {
 
     pageContent.innerHTML = `
         <div class="page-header">
-            <h1>Ana Ekran</h1>
+            <div>
+                <h1>Ana Ekran</h1>
+            </div>
         </div>
         
         <div class="stats-grid">

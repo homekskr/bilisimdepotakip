@@ -107,7 +107,7 @@ body {
     }
 }
 
-/* ==================== Login Screen ==================== */
+/* Login Screen */
 .login-screen {
     position: fixed;
     inset: 0;
@@ -116,6 +116,12 @@ body {
     justify-content: center;
     padding: var(--spacing-md);
     background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1f35 100%);
+    z-index: 2000;
+}
+
+/* Mobile Header - Hidden by default (Desktop) */
+.mobile-header {
+    display: none;
 }
 
 .login-container {
@@ -601,18 +607,77 @@ body {
 .main-content {
     flex: 1;
     overflow-y: auto;
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+}
+
+
+/* Top Header & Notifications */
+.top-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: var(--spacing-md);
+}
+
+.notification-wrapper {
+    position: relative;
+}
+
+.icon-btn {
+    position: relative;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.icon-btn:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.badge-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--danger);
+    color: white;
+    font-size: 10px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-primary);
+    font-weight: 700;
+}
+
+.notification-dropdown {
+    right: 0;
+    left: auto;
 }
 
 /* Page Header */
 .page-header {
-    margin-bottom: var(--spacing-xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-lg);
+    gap: var(--spacing-md);
 }
 
 .page-header h1 {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: var(--spacing-sm);
 }
 
 .page-header p {
