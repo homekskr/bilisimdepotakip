@@ -134,29 +134,28 @@ function navigateTo(page, pushState = true) {
 
 // Load page content
 async function loadPage(page) {
-    // Show spinner ONLY if data is missing for that page
     const hasCache = (page === 'materials' && window.materialsData) ||
         (page === 'assignments' && window.assignmentsData) ||
         (page === 'requests' && window.requestsData) ||
-        (page === 'users' && window.usersData);
+        (page === 'users' && window.usersData) ||
+        (page === 'dashboard' && window.materialsData && window.assignmentsData && window.requestsData);
 
     // Role-based routing protection
     const role = window.currentProfile ? window.currentProfile.role : null;
 
     // 1. Personel can ONLY see requests
     if (role === 'personel' && page !== 'requests') {
-        console.warn('Personel restricted page access attempt:', page);
         navigateTo('requests');
         return;
     }
 
     // 2. ONLY admin can see users page
     if (page === 'users' && role !== 'admin') {
-        console.warn('Non-admin access attempt to users page:', role);
         navigateTo('dashboard');
         return;
     }
 
+    // Speed Optimization: Don't show "Veriler hazırlanıyor..." if we have cache
     if (!hasCache && page !== 'reports') {
         pageContent.innerHTML = '<div class="loading">Veriler hazırlanıyor...</div>';
     }
@@ -246,17 +245,11 @@ function renderSummaryTable() {
 async function loadDashboard() {
     console.log('Loading Dashboard data...');
 
-    // Paralel pre-fetch
+    // Optimized pre-fetch: Parallel and only if missing
     const tasks = [];
-    if (!window.materialsData) {
-        tasks.push(supabase.from('materials').select('*').then(({ data }) => updateCache('materials', data || [])));
-    }
-    if (!window.assignmentsData) {
-        tasks.push(supabase.from('assignments').select('*').eq('status', 'aktif').then(({ data }) => updateCache('assignments', data || [])));
-    }
-    if (!window.requestsData) {
-        tasks.push(supabase.from('requests').select('*').in('status', ['beklemede', 'yonetici_onayi', 'baskan_onayi']).then(({ data }) => updateCache('requests', data || [])));
-    }
+    if (!window.materialsData) tasks.push(supabase.from('materials').select('*').then(({ data }) => updateCache('materials', data || [])));
+    if (!window.assignmentsData) tasks.push(supabase.from('assignments').select('*').eq('status', 'aktif').then(({ data }) => updateCache('assignments', data || [])));
+    if (!window.requestsData) tasks.push(supabase.from('requests').select('*').in('status', ['beklemede', 'yonetici_onayi', 'baskan_onayi']).then(({ data }) => updateCache('requests', data || [])));
 
     if (tasks.length > 0) {
         await Promise.all(tasks);

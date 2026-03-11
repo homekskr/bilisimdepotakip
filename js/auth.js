@@ -191,16 +191,16 @@ async function initializeAuth() {
         }
 
         if (session && session.user) {
-            console.log('Valid session found, fetching profile...');
-            const profile = await getUserProfile(session.user.id);
-            if (profile) {
-                // Background pre-fetch dashboard data
-                Promise.all([
-                    supabase.from('materials').select('*').then(({ data }) => updateCache('materials', data || [])),
-                    supabase.from('assignments').select('*').eq('status', 'aktif').then(({ data }) => updateCache('assignments', data || [])),
-                    supabase.from('requests').select('*').in('status', ['beklemede', 'yonetici_onayi', 'baskan_onayi']).then(({ data }) => updateCache('requests', data || []))
-                ]).catch(err => console.error('Early pre-fetch error:', err));
+            console.log('Valid session found, fetching profile and data...');
+            // Parallel fetch: Profile + Essential Data
+            const [profile] = await Promise.all([
+                getUserProfile(session.user.id),
+                supabase.from('materials').select('*').then(({ data }) => updateCache('materials', data || [])),
+                supabase.from('assignments').select('*').eq('status', 'aktif').then(({ data }) => updateCache('assignments', data || [])),
+                supabase.from('requests').select('*').in('status', ['beklemede', 'yonetici_onayi', 'baskan_onayi']).then(({ data }) => updateCache('requests', data || []))
+            ]);
 
+            if (profile) {
                 showApp(session.user, profile);
                 initNotifications(); // Initialize notifications
             } else {
@@ -218,15 +218,14 @@ async function initializeAuth() {
             if (event === 'SIGNED_IN' && session) {
                 // Only fetch if profile missing or user changed
                 if (!window.currentProfile || window.currentProfile.id !== session.user.id) {
-                    const profile = await getUserProfile(session.user.id);
-                    if (profile) {
-                        // Background pre-fetch dashboard data
-                        Promise.all([
-                            supabase.from('materials').select('*').then(({ data }) => updateCache('materials', data || [])),
-                            supabase.from('assignments').select('*').eq('status', 'aktif').then(({ data }) => updateCache('assignments', data || [])),
-                            supabase.from('requests').select('*').in('status', ['beklemede', 'yonetici_onayi', 'baskan_onayi']).then(({ data }) => updateCache('requests', data || []))
-                        ]).catch(err => console.error('Early pre-fetch error:', err));
+                    const [profile] = await Promise.all([
+                        getUserProfile(session.user.id),
+                        supabase.from('materials').select('*').then(({ data }) => updateCache('materials', data || [])),
+                        supabase.from('assignments').select('*').eq('status', 'aktif').then(({ data }) => updateCache('assignments', data || [])),
+                        supabase.from('requests').select('*').in('status', ['beklemede', 'yonetici_onayi', 'baskan_onayi']).then(({ data }) => updateCache('requests', data || []))
+                    ]);
 
+                    if (profile) {
                         showApp(session.user, profile);
                         initNotifications(); // Initialize notifications
                     }
