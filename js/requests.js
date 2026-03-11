@@ -418,7 +418,7 @@ async function openRequestModal() {
 
     // Predefined types list (to ensure consistency)
     const materialTypes = [
-        "MASAÜSTÜ BİLGİSAYAR", "DİZÜSTÜ BİLGİSAYAR", "EKRAN LCD/LED", "YAZICI DÜZ",
+        "MASAÜSTÜ BİLGİSAYAR", "DİZÜSTÜ BİLGİSAYAR", "TABLET BİLGİSAYAR", "EKRAN LCD/LED", "YAZICI DÜZ",
         "YAZICI ÇOK FONKSİYONLU", "BARKOD YAZICI", "TARAYICI", "SUNUCU BİLGİSAYAR",
         "VERİ DEPOLAMA ÜNİTESİ", "ANAHTARLAMA CİHAZI", "ACCESS POINT", "KLAVYE", "MOUSE", "DİĞER"
     ];

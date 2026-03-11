@@ -140,6 +140,7 @@ async function render() {
                                 <option value="">Seçiniz</option>
                                 <option value="MASAÜSTÜ BİLGİSAYAR">MASAÜSTÜ BİLGİSAYAR</option>
                                 <option value="DİZÜSTÜ BİLGİSAYAR">DİZÜSTÜ BİLGİSAYAR</option>
+                                <option value="TABLET BİLGİSAYAR">TABLET BİLGİSAYAR</option>
                                 <option value="EKRAN LCD/LED">EKRAN LCD/LED</option>
                                 <option value="YAZICI DÜZ">YAZICI DÜZ</option>
                                 <option value="YAZICI ÇOK FONKSİYONLU">YAZICI ÇOK FONKSİYONLU</option>
