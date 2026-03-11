@@ -22,9 +22,8 @@ SELECT email, full_name, role, phone
 FROM public.profiles 
 WHERE role IN ('admin', 'yonetici', 'baskan');
 
--- 4. Telefon Numarası Formatı Doğru mu?
--- Örnek doğru format: 905321112233
-SELECT email, phone 
-FROM public.profiles 
-WHERE phone IS NOT NULL 
-AND (length(phone) <> 12 OR phone NOT LIKE '90%');
+-- 5. Requests Tablosu Gerçek Sütun İsimleri
+-- Hangi sütunların olduğunu kesin olarak görelim.
+SELECT column_name, data_type 
+FROM information_schema.columns 
+WHERE table_name = 'requests';
