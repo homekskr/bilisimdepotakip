@@ -420,7 +420,8 @@ async function openRequestModal() {
     const materialTypes = [
         "MASAÜSTÜ BİLGİSAYAR", "DİZÜSTÜ BİLGİSAYAR", "TABLET BİLGİSAYAR", "EKRAN LCD/LED", "YAZICI DÜZ",
         "YAZICI ÇOK FONKSİYONLU", "BARKOD YAZICI", "TARAYICI", "SUNUCU BİLGİSAYAR",
-        "VERİ DEPOLAMA ÜNİTESİ", "ANAHTARLAMA CİHAZI", "ACCESS POINT", "KLAVYE", "MOUSE", "DİĞER"
+        "VERİ DEPOLAMA ÜNİTESİ", "ANAHTARLAMA CİHAZI", "ACCESS POINT", "KLAVYE", "MOUSE",
+        "IP TELEFON", "ANALOG TELEFON", "CEP TELEFONU", "DİĞER"
     ];
 
     typeSelect.innerHTML = '<option value="">Talep Türü Seçin</option>' +

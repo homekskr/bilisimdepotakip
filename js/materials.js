@@ -152,6 +152,9 @@ async function render() {
                                 <option value="ACCESS POINT">ACCESS POINT</option>
                                 <option value="KLAVYE">KLAVYE</option>
                                 <option value="MOUSE">MOUSE</option>
+                                <option value="IP TELEFON">IP TELEFON</option>
+                                <option value="ANALOG TELEFON">ANALOG TELEFON</option>
+                                <option value="CEP TELEFONU">CEP TELEFONU</option>
                                 <option value="DİĞER">DİĞER</option>
                             </select>
                         </div>
