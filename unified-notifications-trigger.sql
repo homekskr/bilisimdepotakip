@@ -18,7 +18,7 @@ BEGIN
     -- 1. DURUM: YENİ TALEP OLUŞTURULDU (Personel -> Yetkililer)
     IF (TG_OP = 'INSERT') THEN
         v_title := 'Yeni Malzeme Talebi';
-        v_message := NEW.requested_type || ' için yeni bir talep oluşturuldu.';
+        v_message := NEW.material_type || ' için yeni bir talep oluşturuldu.';
         v_link := '#requests';
 
         FOR user_rec IN SELECT id FROM public.profiles WHERE role IN ('yonetici', 'baskan', 'admin') LOOP
@@ -49,7 +49,7 @@ BEGIN
         -- A. Yönetici Onayladı -> Başkan'a Bildir
         IF (NEW.status = 'yonetici_onayi') THEN
             v_title := 'Talep Onay Bekliyor';
-            v_message := NEW.requested_type || ' talebi yönetici tarafından onaylandı, başkan onayı bekleniyor.';
+            v_message := NEW.material_type || ' talebi yönetici tarafından onaylandı, başkan onayı bekleniyor.';
             v_link := '#requests';
 
             FOR user_rec IN SELECT id FROM public.profiles WHERE role IN ('baskan', 'admin') LOOP
@@ -64,7 +64,7 @@ BEGIN
         -- B. Başkan Onayladı -> Depocu'ya ve Kullanıcıya Bildir
         IF (NEW.status = 'onaylandi') THEN
             v_title := 'Talep Onaylandı';
-            v_message := NEW.requested_type || ' talebi başkan tarafından onaylandı. Zimmet işlemleri yapılabilir.';
+            v_message := NEW.material_type || ' talebi başkan tarafından onaylandı. Zimmet işlemleri yapılabilir.';
             v_link := '#requests';
 
             -- Depo ve Adminlere
@@ -76,22 +76,22 @@ BEGIN
 
             -- Talebi yapan kullanıcıya (Sadece Push ve In-App, SMS opsiyonel)
             INSERT INTO public.notifications (user_id, title, message, type, link)
-            VALUES (NEW.requested_by, 'Talebiniz Onaylandı', NEW.requested_type || ' talebiniz onaylandı. Depodan teslim alabilirsiniz.', 'success', v_link);
-            PERFORM net.http_post(url := v_push_api_url, headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_api_key), body := jsonb_build_object('user_id', NEW.requested_by, 'title', 'Talebiniz Onaylandı', 'message', NEW.requested_type || ' talebiniz onaylandı.', 'link', v_link));
+            VALUES (NEW.user_id, 'Talebiniz Onaylandı', NEW.material_type || ' talebiniz onaylandı. Depodan teslim alabilirsiniz.', 'success', v_link);
+            PERFORM net.http_post(url := v_push_api_url, headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_api_key), body := jsonb_build_object('user_id', NEW.user_id, 'title', 'Talebiniz Onaylandı', 'message', NEW.material_type || ' talebiniz onaylandı.', 'link', v_link));
         END IF;
 
         -- C. Zimmetlendi (Tamamlandı) -> Kullanıcıya Bildir
         IF (NEW.status = 'tamamlandi') THEN
             INSERT INTO public.notifications (user_id, title, message, type, link)
-            VALUES (NEW.requested_by, 'Malzeme Zimmetlendi', NEW.requested_type || ' malzemeniz başarıyla zimmetlendi.', 'success', '#assignments');
-            PERFORM net.http_post(url := v_push_api_url, headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_api_key), body := jsonb_build_object('user_id', NEW.requested_by, 'title', 'Malzeme Zimmetlendi', 'message', 'Malzemeniz üzerinize zimmetlendi.', 'link', '#assignments'));
+            VALUES (NEW.user_id, 'Malzeme Zimmetlendi', NEW.material_type || ' malzemeniz başarıyla zimmetlendi.', 'success', '#assignments');
+            PERFORM net.http_post(url := v_push_api_url, headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_api_key), body := jsonb_build_object('user_id', NEW.user_id, 'title', 'Malzeme Zimmetlendi', 'message', 'Malzemeniz üzerinize zimmetlendi.', 'link', '#assignments'));
         END IF;
 
         -- D. Reddedildi -> Kullanıcıya Bildir
         IF (NEW.status = 'reddedildi') THEN
             INSERT INTO public.notifications (user_id, title, message, type, link)
-            VALUES (NEW.requested_by, 'Talep Reddedildi', NEW.requested_type || ' talebiniz reddedildi.', 'error', '#requests');
-            PERFORM net.http_post(url := v_push_api_url, headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_api_key), body := jsonb_build_object('user_id', NEW.requested_by, 'title', 'Talep Reddedildi', 'message', 'Maalesef talebiniz onaylanmadı.', 'link', '#requests'));
+            VALUES (NEW.user_id, 'Talep Reddedildi', NEW.material_type || ' talebiniz reddedildi.', 'error', '#requests');
+            PERFORM net.http_post(url := v_push_api_url, headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_api_key), body := jsonb_build_object('user_id', NEW.user_id, 'title', 'Talep Reddedildi', 'message', 'Maalesef talebiniz onaylanmadı.', 'link', '#requests'));
         END IF;
 
         RETURN NEW;

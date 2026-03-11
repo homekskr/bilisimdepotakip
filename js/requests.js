@@ -25,7 +25,7 @@ async function render() {
 
     // Personel can only see their own requests, unless they are admin
     if (userRole === 'personel' && userRole !== 'admin') {
-        query = query.eq('requested_by', userId);
+        query = query.eq('user_id', userId);
     }
 
     const { data: requests, error } = await query;
@@ -596,8 +596,8 @@ async function saveRequest() {
         const { error } = await supabase
             .from('requests')
             .insert([{
-                requested_type: requestedType,
-                requested_by: window.currentUser.id,
+                material_type: requestedType,
+                user_id: window.currentUser.id,
                 institution: institution,
                 building: building,
                 unit: unit,
