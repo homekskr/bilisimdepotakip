@@ -150,6 +150,8 @@ async function render() {
                                 <option value="VERİ DEPOLAMA ÜNİTESİ">VERİ DEPOLAMA ÜNİTESİ</option>
                                 <option value="ANAHTARLAMA CİHAZI">ANAHTARLAMA CİHAZI</option>
                                 <option value="ACCESS POINT">ACCESS POINT</option>
+                                <option value="BARKOD OKUYUCU">BARKOD OKUYUCU</option>
+                                <option value="KAREKOD OKUYUCU">KAREKOD OKUYUCU</option>
                                 <option value="KLAVYE">KLAVYE</option>
                                 <option value="MOUSE">MOUSE</option>
                                 <option value="IP TELEFON">IP TELEFON</option>
