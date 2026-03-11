@@ -68,7 +68,7 @@ export default async function handler(req, res) {
                 sendingType: 0,
                 title: `Bildirim ${Date.now()}`,
                 content: smsContent,
-                number: parseInt(phoneNumber),
+                number: phoneNumber,
                 encoding: 1, // Turkish characters
                 sender: VOICE_TELEKOM_SENDER,
                 validity: 60

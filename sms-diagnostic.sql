@@ -1,10 +1,12 @@
--- 1. Giden İstek Kuyruğu (Son 10 Kayıt)
--- Eğer burada kayıt varsa tetikleyici çalışıyor demektir.
-SELECT * FROM net.http_request_queue ORDER BY id DESC LIMIT 10;
+-- 1. En Son Alınan Cevaplar (Hata Detayları)
+-- Şifre güncellemesinden sonraki sonuçları görmek için:
+SELECT id, status_code, content FROM net._http_response ORDER BY id DESC LIMIT 10;
 
--- 2. Dışarıdan Dönen Cevaplar (Hatalar)
--- Eğer Vercel hata veriyorsa burada 'error' veya 401/500 kodu görürüz.
-SELECT * FROM net._http_response ORDER BY id DESC LIMIT 10;
+-- 2. Yönetici Telefon Formatlarını Kontrol Et
+-- Örn: 5321329079 (10 hane) vs 905321329079 (12 hane)
+SELECT full_name, role, phone 
+FROM public.profiles 
+WHERE role IN ('yonetici', 'baskan', 'admin');
 
 -- 3. Yönetici Telefonlarını Kontrol Et
 -- SMS gidecek yöneticilerin telefonları nasıl kayıtlı?
